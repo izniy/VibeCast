@@ -1,14 +1,14 @@
 import { supabase } from '../lib/supabase';
 import type { Database } from '../types/database';
+import type { MoodType } from '../types/mood';
 
 export type MoodEntry = Database['public']['Tables']['mood_entries']['Row'];
 export type CreateMoodEntryParams = Omit<Database['public']['Tables']['mood_entries']['Insert'], 'id' | 'created_at' | 'updated_at'>;
 
-export type MoodType = 'happy' | 'sad' | 'stressed' | 'angry' | 'relaxed';
 export type ValidMood = MoodType;
 
 export const isValidMood = (mood: string): mood is ValidMood => {
-  return ['happy', 'sad', 'stressed', 'angry', 'relaxed'].includes(mood);
+  return ['happy', 'sad', 'energetic', 'relaxed', 'focused', 'romantic', 'angry'].includes(mood);
 };
 
 export async function getMoodEntries(userId: string): Promise<MoodEntry[]> {

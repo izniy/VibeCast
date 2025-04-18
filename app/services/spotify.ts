@@ -1,137 +1,145 @@
-import { MoodType } from './mood';
+import * as SecureStore from 'expo-secure-store';
+import * as WebBrowser from 'expo-web-browser';
+import { Linking } from 'react-native';
+import type { MoodType } from '../types/mood';
 
-if (!process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_ID || !process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET) {
-  throw new Error('Spotify credentials are not configured in environment variables');
+const CLIENT_ID = process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_ID;
+const CLIENT_SECRET = process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET;
+
+if (!CLIENT_ID || !CLIENT_SECRET) {
+  throw new Error('Missing Spotify credentials in environment variables');
 }
 
-const SPOTIFY_CLIENT_ID = process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_ID;
-const SPOTIFY_CLIENT_SECRET = process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET;
-const SPOTIFY_TOKEN_URL = 'https://accounts.spotify.com/api/token';
-const SPOTIFY_API_URL = 'https://api.spotify.com/v1';
+interface SpotifyToken {
+  access_token: string;
+  token_type: string;
+  expires_in: number;
+}
 
-export interface Song {
+export interface SpotifyTrack {
   id: string;
-  title: string;
-  artist: string;
-  album: string;
-  imageUrl: string;
-  previewUrl: string | null;
+  name: string;
+  artists: Array<{ name: string }>;
+  album: {
+    name: string;
+    images: Array<{ url: string }>;
+  };
+  external_urls: {
+    spotify: string;
+  };
+  preview_url: string | null;
 }
 
-export interface SpotifyError {
-  message: string;
-  status: number;
-}
+const SPOTIFY_TOKEN_KEY = 'spotify_access_token';
+const SPOTIFY_TOKEN_EXPIRY_KEY = 'spotify_token_expiry';
 
-export type SpotifyResponse<T> = {
-  data: T | null;
-  error: SpotifyError | null;
+const moodToGenres: Record<MoodType, string[]> = {
+  happy: ['pop', 'dance'],
+  sad: ['acoustic', 'piano'],
+  energetic: ['edm', 'workout'],
+  relaxed: ['ambient', 'chill'],
+  focused: ['study', 'classical'],
+  romantic: ['romance', 'r-n-b'],
+  angry: ['metal', 'rock']
 };
 
-const moodToGenre: Record<MoodType, string[]> = {
-  happy: ['pop', 'dance', 'party'],
-  sad: ['acoustic', 'piano', 'sad'],
-  stressed: ['chill', 'ambient'],
-  angry: ['metal', 'punk'],
-  relaxed: ['jazz', 'lofi', 'classical'],
-};
-
-/**
- * Get Spotify access token using client credentials
- */
-async function getSpotifyAccessToken(): Promise<string | null> {
+async function getStoredToken(): Promise<string | null> {
   try {
-    const auth = Buffer.from(`${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`).toString('base64');
-    
-    const response = await fetch(SPOTIFY_TOKEN_URL, {
+    const [token, expiryStr] = await Promise.all([
+      SecureStore.getItemAsync(SPOTIFY_TOKEN_KEY),
+      SecureStore.getItemAsync(SPOTIFY_TOKEN_EXPIRY_KEY),
+    ]);
+
+    if (!token || !expiryStr) return null;
+
+    const expiry = parseInt(expiryStr, 10);
+    if (Date.now() >= expiry) return null;
+
+    return token;
+  } catch (error) {
+    console.error('Error reading stored token:', error);
+    return null;
+  }
+}
+
+async function storeToken(token: string, expiresIn: number): Promise<void> {
+  try {
+    const expiry = Date.now() + expiresIn * 1000;
+    await Promise.all([
+      SecureStore.setItemAsync(SPOTIFY_TOKEN_KEY, token),
+      SecureStore.setItemAsync(SPOTIFY_TOKEN_EXPIRY_KEY, expiry.toString()),
+    ]);
+  } catch (error) {
+    console.error('Error storing token:', error);
+  }
+}
+
+export async function getSpotifyAccessToken(): Promise<string> {
+  const storedToken = await getStoredToken();
+  if (storedToken) return storedToken;
+
+  const auth = Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString('base64');
+  
+  try {
+    const response = await fetch('https://accounts.spotify.com/api/token', {
       method: 'POST',
       headers: {
-        'Authorization': `Basic ${auth}`,
+        Authorization: `Basic ${auth}`,
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: 'grant_type=client_credentials',
     });
 
     if (!response.ok) {
-      console.error('Failed to get Spotify token:', response.statusText);
-      return null;
+      throw new Error('Failed to get Spotify token');
     }
 
-    const data = await response.json();
+    const data: SpotifyToken = await response.json();
+    await storeToken(data.access_token, data.expires_in);
     return data.access_token;
   } catch (error) {
     console.error('Error getting Spotify token:', error);
-    return null;
+    throw error;
   }
 }
 
-/**
- * Get song recommendations based on mood
- */
-export async function getSpotifyRecommendations(
-  mood: MoodType
-): Promise<SpotifyResponse<Song[]>> {
+export async function getSpotifyRecommendations(mood: MoodType): Promise<SpotifyTrack[]> {
   try {
     const token = await getSpotifyAccessToken();
-    if (!token) {
-      return {
-        data: null,
-        error: {
-          message: 'Failed to get Spotify access token',
-          status: 401
-        }
-      };
-    }
-
-    const genres = moodToGenre[mood];
-    const params = new URLSearchParams({
-      seed_genres: genres.slice(0, 3).join(','), // Spotify allows max 5 seed values
-      limit: '10',
-      market: 'US'
-    });
+    const genres = moodToGenres[mood];
+    const genreString = genres.join(',');
 
     const response = await fetch(
-      `${SPOTIFY_API_URL}/recommendations?${params}`,
+      `https://api.spotify.com/v1/recommendations?seed_genres=${genreString}&limit=10`,
       {
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
         },
       }
     );
 
     if (!response.ok) {
-      return {
-        data: null,
-        error: {
-          message: 'Failed to get recommendations',
-          status: response.status
-        }
-      };
+      throw new Error('Failed to fetch music recommendations');
     }
 
     const data = await response.json();
-    
-    const songs: Song[] = data.tracks.map((track: any) => ({
-      id: track.id,
-      title: track.name,
-      artist: track.artists[0].name,
-      album: track.album.name,
-      imageUrl: track.album.images[0]?.url || '',
-      previewUrl: track.preview_url
-    }));
-
-    return {
-      data: songs,
-      error: null
-    };
+    return data.tracks;
   } catch (error) {
-    return {
-      data: null,
-      error: {
-        message: error instanceof Error ? error.message : 'Unknown error occurred',
-        status: 500
-      }
-    };
+    console.error('Error fetching music recommendations:', error);
+    throw error;
+  }
+}
+
+export async function openSpotifyLink(url: string): Promise<void> {
+  try {
+    const supported = await Linking.canOpenURL(url);
+    if (supported) {
+      await Linking.openURL(url);
+    } else {
+      await WebBrowser.openBrowserAsync(url);
+    }
+  } catch (error) {
+    console.error('Error opening Spotify link:', error);
+    throw error;
   }
 } 

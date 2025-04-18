@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
-import { MoodType } from '../../services/mood';
+import { MoodType } from '../../types/mood';
 
 interface MoodSelectorProps {
   selectedMood: MoodType | null;
@@ -9,10 +9,12 @@ interface MoodSelectorProps {
 
 const MOODS: { type: MoodType; emoji: string; label: string; color: string }[] = [
   { type: 'happy', emoji: '😊', label: 'Happy', color: 'bg-green-400' },
-  { type: 'sad', emoji: '😔', label: 'Sad', color: 'bg-blue-400' },
-  { type: 'stressed', emoji: '😰', label: 'Stressed', color: 'bg-yellow-400' },
-  { type: 'angry', emoji: '😠', label: 'Angry', color: 'bg-red-400' },
+  { type: 'sad', emoji: '😢', label: 'Sad', color: 'bg-blue-400' },
+  { type: 'energetic', emoji: '⚡️', label: 'Energetic', color: 'bg-yellow-400' },
   { type: 'relaxed', emoji: '😌', label: 'Relaxed', color: 'bg-purple-400' },
+  { type: 'focused', emoji: '🎯', label: 'Focused', color: 'bg-indigo-400' },
+  { type: 'romantic', emoji: '❤️', label: 'Romantic', color: 'bg-pink-400' },
+  { type: 'angry', emoji: '😠', label: 'Angry', color: 'bg-red-400' },
 ];
 
 export const MoodSelector: React.FC<MoodSelectorProps> = ({

@@ -1,90 +1,161 @@
-import React, { useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
-import { format } from 'date-fns';
+import React, { useCallback, useMemo, useState } from 'react';
+import { View, StyleSheet, FlatList, Alert, ActivityIndicator, Animated } from 'react-native';
+import { Text } from 'react-native-paper';
+import { format, isToday, isYesterday } from 'date-fns';
+import { useMood } from '../hooks/useMood';
 import { useAuth } from '../providers/AuthProvider';
-import { getMoodEntries, deleteMoodEntry, type MoodEntry } from '../services/mood';
-import { Ionicons } from '@expo/vector-icons';
+import type { MoodEntry } from '../services/mood';
+import type { MoodType } from '../types/mood';
+import { MoodEntryCard } from '../components/history/MoodEntryCard';
+import { MoodFilterChips } from '../components/history/MoodFilterChips';
+
+interface GroupedMoodEntries {
+  title: string;
+  data: MoodEntry[];
+}
 
 export default function HistoryScreen() {
   const { user } = useAuth();
-  const [moodHistory, setMoodHistory] = React.useState<MoodEntry[]>([]);
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
+  const { moodHistory, loading, error, refreshHistory, removeMoodEntry } = useMood();
+  const fadeAnim = React.useRef(new Animated.Value(0)).current;
+  const [selectedMood, setSelectedMood] = useState<MoodType | 'all'>('all');
 
-  useEffect(() => {
-    if (user) {
-      loadMoodHistory();
-    }
-  }, [user]);
+  const handleRefresh = useCallback(async () => {
+    await refreshHistory();
+    // Trigger fade-in animation after refresh
+    fadeAnim.setValue(0);
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 500,
+      useNativeDriver: true,
+    }).start();
+  }, [refreshHistory, fadeAnim]);
 
-  const loadMoodHistory = async () => {
-    if (!user) return;
+  const handleDeleteEntry = useCallback((entry: MoodEntry) => {
+    Alert.alert(
+      'Delete Entry',
+      'Are you sure you want to delete this mood entry?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => removeMoodEntry(entry.id),
+        },
+      ]
+    );
+  }, [removeMoodEntry]);
 
-    try {
-      setLoading(true);
-      setError(null);
-      const entries = await getMoodEntries(user.id);
-      setMoodHistory(entries);
-    } catch (err) {
-      setError('Failed to load mood history');
-      console.error('Error loading mood history:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const filteredAndGroupedEntries = useMemo(() => {
+    if (!moodHistory.length) return [];
 
-  const handleDelete = async (entryId: string) => {
-    try {
-      await deleteMoodEntry(entryId);
-      await loadMoodHistory();
-    } catch (err) {
-      console.error('Error deleting mood entry:', err);
-    }
-  };
+    // Filter entries if a specific mood is selected
+    const filteredEntries = selectedMood === 'all'
+      ? moodHistory
+      : moodHistory.filter(entry => entry.mood === selectedMood);
 
-  const renderItem = ({ item }: { item: MoodEntry }) => (
-    <View style={styles.card}>
-      <View style={styles.cardHeader}>
-        <Text style={styles.mood}>{item.mood}</Text>
-        <TouchableOpacity
-          onPress={() => handleDelete(item.id)}
-          style={styles.deleteButton}
-        >
-          <Ionicons name="trash-outline" size={20} color="#EF4444" />
-        </TouchableOpacity>
-      </View>
-      {item.journal_entry && (
-        <Text style={styles.journal}>{item.journal_entry}</Text>
-      )}
-      <Text style={styles.date}>
-        {format(new Date(item.created_at), 'PPpp')}
-      </Text>
+    const groups: Record<string, MoodEntry[]> = {};
+    
+    filteredEntries.forEach(entry => {
+      const date = new Date(entry.created_at);
+      let title = format(date, 'EEEE, MMMM d');
+      
+      if (isToday(date)) {
+        title = 'Today';
+      } else if (isYesterday(date)) {
+        title = 'Yesterday';
+      }
+
+      if (!groups[title]) {
+        groups[title] = [];
+      }
+      groups[title].push(entry);
+    });
+
+    // Sort entries within each group
+    Object.values(groups).forEach(entries => {
+      entries.sort((a, b) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+    });
+
+    return Object.entries(groups).map(([title, data]) => ({
+      title,
+      data,
+    }));
+  }, [moodHistory, selectedMood]);
+
+  const renderSectionHeader = useCallback(({ title }: { title: string }) => (
+    <View style={styles.sectionHeader}>
+      <Text style={styles.sectionTitle}>{title}</Text>
     </View>
-  );
+  ), []);
 
-  if (error) {
+  if (loading && !moodHistory.length) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.error}>{error}</Text>
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color="#3B82F6" />
       </View>
     );
   }
 
+  if (error) {
+    return (
+      <View style={styles.centerContainer}>
+        <Text style={styles.errorText}>{error}</Text>
+      </View>
+    );
+  }
+
+  if (!moodHistory.length) {
+    return (
+      <View style={styles.centerContainer}>
+        <Text style={styles.emptyText}>No mood entries yet</Text>
+        <Text style={styles.emptySubtext}>
+          Your mood history will appear here once you start logging your moods
+        </Text>
+      </View>
+    );
+  }
+
+  const hasFilteredEntries = filteredAndGroupedEntries.length > 0;
+
   return (
     <View style={styles.container}>
-      <FlatList
-        data={moodHistory}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.list}
-        ListEmptyComponent={
-          loading ? (
-            <Text style={styles.emptyText}>Loading...</Text>
-          ) : (
-            <Text style={styles.emptyText}>No mood entries yet</Text>
-          )
-        }
+      <MoodFilterChips
+        selectedMood={selectedMood}
+        onSelectMood={setSelectedMood}
       />
+      <Animated.View style={[styles.listContainer, { opacity: fadeAnim }]}>
+        {hasFilteredEntries ? (
+          <FlatList
+            data={filteredAndGroupedEntries}
+            renderItem={({ item }) => (
+              <View style={styles.section}>
+                {renderSectionHeader(item)}
+                {item.data.map((entry) => (
+                  <MoodEntryCard
+                    key={entry.id}
+                    entry={entry}
+                    onDelete={() => handleDeleteEntry(entry)}
+                  />
+                ))}
+              </View>
+            )}
+            keyExtractor={(item) => item.title}
+            refreshing={loading}
+            onRefresh={handleRefresh}
+            contentContainerStyle={styles.listContent}
+          />
+        ) : (
+          <View style={styles.centerContainer}>
+            <Text style={styles.emptyText}>No entries found</Text>
+            <Text style={styles.emptySubtext}>
+              Try selecting a different mood filter
+            </Text>
+          </View>
+        )}
+      </Animated.View>
     </View>
   );
 }
@@ -93,59 +164,51 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F3F4F6',
-    paddingTop: 20,
   },
-  list: {
-    padding: 16,
+  listContainer: {
+    flex: 1,
   },
-  card: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
+  listContent: {
+    paddingBottom: 20,
   },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  centerContainer: {
+    flex: 1,
     alignItems: 'center',
-    marginBottom: 8,
+    justifyContent: 'center',
+    padding: 20,
+    backgroundColor: '#F3F4F6',
   },
-  mood: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1F2937',
-    textTransform: 'capitalize',
+  section: {
+    marginBottom: 24,
   },
-  deleteButton: {
-    padding: 4,
-  },
-  journal: {
-    fontSize: 14,
-    color: '#4B5563',
+  sectionHeader: {
+    backgroundColor: '#E5E7EB',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     marginBottom: 12,
-    lineHeight: 20,
+    borderRadius: 8,
+    marginHorizontal: 16,
   },
-  date: {
-    fontSize: 12,
-    color: '#6B7280',
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#374151',
+    letterSpacing: 0.5,
   },
-  error: {
+  errorText: {
     color: '#EF4444',
+    fontSize: 16,
     textAlign: 'center',
-    marginTop: 20,
   },
   emptyText: {
-    textAlign: 'center',
+    fontSize: 18,
+    fontWeight: '500',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  emptySubtext: {
+    fontSize: 14,
     color: '#6B7280',
-    fontSize: 16,
-    marginTop: 20,
+    textAlign: 'center',
   },
 });

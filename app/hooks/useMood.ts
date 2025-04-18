@@ -1,6 +1,11 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '../providers/AuthProvider';
-import { MoodEntry, getMoodEntries, createMoodEntry, deleteMoodEntry, type MoodType } from '../services/mood';
+import { supabase } from '../lib/supabase';
+import type { Database } from '../types/database';
+import type { MoodType } from '../types/mood';
+
+type MoodEntry = Database['public']['Tables']['mood_entries']['Row'];
+type CreateMoodEntryParams = Omit<MoodEntry, 'id' | 'created_at' | 'updated_at'>;
 
 export function useMood() {
   const { user } = useAuth();
@@ -14,8 +19,15 @@ export function useMood() {
     try {
       setLoading(true);
       setError(null);
-      const entries = await getMoodEntries(user.id);
-      setMoodHistory(entries);
+      
+      const { data, error: fetchError } = await supabase
+        .from('mood_entries')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (fetchError) throw fetchError;
+      setMoodHistory(data || []);
     } catch (err) {
       setError('Failed to load mood history');
       console.error('Error loading mood history:', err);
@@ -29,11 +41,17 @@ export function useMood() {
 
     try {
       setError(null);
-      await createMoodEntry({
+      const newEntry: CreateMoodEntryParams = {
         user_id: user.id,
         mood,
-        journal_entry: journalEntry
-      });
+        journal_entry: journalEntry || null
+      };
+
+      const { error: insertError } = await supabase
+        .from('mood_entries')
+        .insert([newEntry]);
+
+      if (insertError) throw insertError;
       await refreshHistory();
     } catch (err) {
       setError('Failed to add mood entry');
@@ -44,13 +62,27 @@ export function useMood() {
   const removeMoodEntry = useCallback(async (entryId: string) => {
     try {
       setError(null);
-      await deleteMoodEntry(entryId);
+      const { error: deleteError } = await supabase
+        .from('mood_entries')
+        .delete()
+        .eq('id', entryId);
+
+      if (deleteError) throw deleteError;
       await refreshHistory();
     } catch (err) {
       setError('Failed to delete mood entry');
       console.error('Error deleting mood entry:', err);
     }
   }, [refreshHistory]);
+
+  // Fetch mood history when the component mounts or user changes
+  useEffect(() => {
+    if (user) {
+      refreshHistory();
+    } else {
+      setMoodHistory([]);
+    }
+  }, [user, refreshHistory]);
 
   return {
     moodHistory,
