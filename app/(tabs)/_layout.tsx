@@ -1,26 +1,13 @@
 import { Tabs } from 'expo-router';
-import { useAuth } from '../../app/providers/AuthProvider';
-import { View, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-export default function TabsLayout() {
-  const { isLoading } = useAuth();
-
-  if (isLoading) {
-    return (
-      <View className="flex-1 items-center justify-center">
-        <ActivityIndicator size="large" color="#6366F1" />
-      </View>
-    );
-  }
-
+export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
           backgroundColor: 'white',
-          borderTopWidth: 1,
           borderTopColor: '#E5E7EB',
         },
         tabBarActiveTintColor: '#6366F1',
@@ -32,10 +19,10 @@ export default function TabsLayout() {
         options={{
           title: 'Home',
           tabBarIcon: ({ focused, color }) => (
-            <Ionicons
-              name={focused ? 'home' : 'home-outline'}
-              size={24}
-              color={color}
+            <Ionicons 
+              name={focused ? 'home' : 'home-outline'} 
+              size={24} 
+              color={color} 
             />
           ),
         }}
@@ -45,10 +32,10 @@ export default function TabsLayout() {
         options={{
           title: 'For You',
           tabBarIcon: ({ focused, color }) => (
-            <Ionicons
-              name={focused ? 'heart' : 'heart-outline'}
-              size={24}
-              color={color}
+            <Ionicons 
+              name={focused ? 'heart' : 'heart-outline'} 
+              size={24} 
+              color={color} 
             />
           ),
         }}
@@ -58,10 +45,10 @@ export default function TabsLayout() {
         options={{
           title: 'History',
           tabBarIcon: ({ focused, color }) => (
-            <Ionicons
-              name={focused ? 'calendar' : 'calendar-outline'}
-              size={24}
-              color={color}
+            <Ionicons 
+              name={focused ? 'calendar' : 'calendar-outline'} 
+              size={24} 
+              color={color} 
             />
           ),
         }}
@@ -71,10 +58,10 @@ export default function TabsLayout() {
         options={{
           title: 'Profile',
           tabBarIcon: ({ focused, color }) => (
-            <Ionicons
-              name={focused ? 'person' : 'person-outline'}
-              size={24}
-              color={color}
+            <Ionicons 
+              name={focused ? 'person' : 'person-outline'} 
+              size={24} 
+              color={color} 
             />
           ),
         }}

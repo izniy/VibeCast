@@ -1,8 +1,10 @@
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
-import { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Animated } from 'react-native';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../providers/AuthProvider';
 import { supabase } from '@/lib/supabaseClient';
+import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const MOODS = [
   { emoji: '😊', label: 'Happy', color: '#34D399' },
@@ -12,11 +14,76 @@ const MOODS = [
   { emoji: '😤', label: 'Angry', color: '#F87171' },
 ];
 
+const TOOLTIP_KEY = 'hasShownFabTooltip';
+const TOOLTIP_DURATION = 3000; // 3 seconds
+
 export default function HomeScreen() {
   const { user } = useAuth();
   const router = useRouter();
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const [entry, setEntry] = useState('');
+  const [showTooltip, setShowTooltip] = useState(false);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0)).current;
+  const tooltipAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    // Animate FAB entrance
+    Animated.parallel([
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        tension: 50,
+        friction: 7,
+        useNativeDriver: true,
+      }),
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // Check if tooltip should be shown
+    checkTooltip();
+  }, []);
+
+  const checkTooltip = async () => {
+    try {
+      const hasShown = await AsyncStorage.getItem(TOOLTIP_KEY);
+      if (!hasShown) {
+        setShowTooltip(true);
+        // Animate tooltip entrance
+        Animated.timing(tooltipAnim, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }).start();
+
+        // Auto-hide tooltip after duration
+        setTimeout(() => {
+          hideTooltip();
+        }, TOOLTIP_DURATION);
+
+        // Mark tooltip as shown
+        await AsyncStorage.setItem(TOOLTIP_KEY, 'true');
+      }
+    } catch (error) {
+      console.error('Error checking tooltip:', error);
+    }
+  };
+
+  const hideTooltip = () => {
+    Animated.timing(tooltipAnim, {
+      toValue: 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => setShowTooltip(false));
+  };
+
+  const handleLogMood = () => {
+    setShowTooltip(false);
+    router.push('/mood' as any);
+  };
 
   const saveMood = async (mood: string) => {
     try {
@@ -77,6 +144,39 @@ export default function HomeScreen() {
           </View>
         )}
       </View>
+
+      <Animated.View style={[
+        styles.fab,
+        {
+          opacity: fadeAnim,
+          transform: [
+            { scale: scaleAnim },
+          ],
+        },
+      ]}>
+        {showTooltip && (
+          <Animated.View style={[
+            styles.tooltip,
+            {
+              opacity: tooltipAnim,
+              transform: [
+                { translateY: tooltipAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [10, 0],
+                })},
+              ],
+            },
+          ]}>
+            <Text style={styles.tooltipText}>Tap to log your mood</Text>
+          </Animated.View>
+        )}
+        <TouchableOpacity
+          style={styles.fabButton}
+          onPress={handleLogMood}
+        >
+          <Ionicons name="add" size={30} color="white" />
+        </TouchableOpacity>
+      </Animated.View>
     </View>
   );
 }
@@ -167,5 +267,48 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+  },
+  fab: {
+    position: 'absolute',
+    bottom: 90,
+    right: 20,
+    alignItems: 'center',
+  },
+  fabButton: {
+    backgroundColor: '#6366F1',
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  tooltip: {
+    position: 'absolute',
+    bottom: 70,
+    backgroundColor: '#1F2937',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  tooltipText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '500',
   },
 });
