@@ -1,59 +1,72 @@
-import { useState } from 'react';
-import { MoodEntry } from '../services/mood';
-import * as moodService from '../services/mood';
+import { useState, useEffect } from 'react';
+import { useAuth } from '../providers/AuthProvider';
+import { MoodEntry, getMoodHistory, createMoodEntry, deleteMoodEntry } from '../services/mood';
 
-export function useMood() {
+export const useMood = () => {
+  const { user } = useAuth();
+  const [moodHistory, setMoodHistory] = useState<MoodEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function logMood(userId: string, mood: string, journal: string) {
-    setLoading(true);
-    setError(null);
+  const fetchMoodHistory = async () => {
+    if (!user) return;
+    
     try {
-      const { error } = await moodService.logMoodEntry(userId, mood, journal);
-      if (error) throw error;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to log mood');
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function getMoodHistory(userId: string): Promise<MoodEntry[]> {
-    setLoading(true);
-    setError(null);
-    try {
-      const { data, error } = await moodService.getMoodLogs(userId);
-      if (error) throw error;
-      return data || [];
+      setLoading(true);
+      setError(null);
+      const history = await getMoodHistory(user.id);
+      setMoodHistory(history);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch mood history');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const addMoodEntry = async (mood: string, entry?: string) => {
+    if (!user) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+      const newEntry = await createMoodEntry(user.id, mood, entry);
+      setMoodHistory(prev => [newEntry, ...prev]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create mood entry');
       throw err;
     } finally {
       setLoading(false);
     }
-  }
+  };
 
-  async function deleteMood(userId: string, moodId: string) {
-    setLoading(true);
-    setError(null);
+  const removeMoodEntry = async (entryId: string) => {
+    if (!user) return;
+
     try {
-      const { error } = await moodService.deleteMoodLog(userId, moodId);
-      if (error) throw error;
+      setLoading(true);
+      setError(null);
+      await deleteMoodEntry(user.id, entryId);
+      setMoodHistory(prev => prev.filter(entry => entry.id !== entryId));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete mood entry');
       throw err;
     } finally {
       setLoading(false);
     }
-  }
+  };
+
+  useEffect(() => {
+    if (user) {
+      fetchMoodHistory();
+    }
+  }, [user]);
 
   return {
+    moodHistory,
     loading,
     error,
-    logMood,
-    getMoodHistory,
-    deleteMood
+    addMoodEntry,
+    removeMoodEntry,
+    refreshHistory: fetchMoodHistory,
   };
-} 
+}; 

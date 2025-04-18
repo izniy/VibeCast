@@ -1,19 +1,17 @@
 import { Tabs } from 'expo-router';
-import { useAuth } from '../providers/AuthProvider';
-import { Redirect } from 'expo-router';
+import { useAuth } from '../../app/providers/AuthProvider';
+import { View, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function TabsLayout() {
-  const { user, loading } = useAuth();
+  const { isLoading } = useAuth();
 
-  // Handle the loading state
-  if (loading) {
-    return null; // Or a loading screen component
-  }
-
-  // If no user is authenticated, redirect to login
-  if (!user) {
-    return <Redirect href="/login" />;
+  if (isLoading) {
+    return (
+      <View className="flex-1 items-center justify-center">
+        <ActivityIndicator size="large" color="#6366F1" />
+      </View>
+    );
   }
 
   return (

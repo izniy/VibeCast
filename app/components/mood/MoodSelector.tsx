@@ -1,39 +1,43 @@
 import React from 'react';
-import { View, TouchableOpacity, Text } from 'react-native';
-import { styled } from 'nativewind';
-
-const StyledView = styled(View);
-const StyledText = styled(Text);
-
-const moods = [
-  { emoji: '😊', name: 'Happy' },
-  { emoji: '😢', name: 'Sad' },
-  { emoji: '😰', name: 'Stressed' },
-  { emoji: '😌', name: 'Relaxed' },
-  { emoji: '😴', name: 'Tired' },
-  { emoji: '😡', name: 'Angry' },
-];
+import { View, Text, TouchableOpacity } from 'react-native';
+import { MoodType } from '../../services/mood';
 
 interface MoodSelectorProps {
-  onSelectMood: (mood: { emoji: string; name: string }) => void;
-  selectedMood?: { emoji: string; name: string };
+  selectedMood: MoodType | null;
+  onSelectMood: (mood: MoodType) => void;
 }
 
-export const MoodSelector: React.FC<MoodSelectorProps> = ({ onSelectMood, selectedMood }) => {
+const MOODS: { type: MoodType; emoji: string; label: string; color: string }[] = [
+  { type: 'happy', emoji: '😊', label: 'Happy', color: 'bg-green-400' },
+  { type: 'sad', emoji: '😔', label: 'Sad', color: 'bg-blue-400' },
+  { type: 'stressed', emoji: '😰', label: 'Stressed', color: 'bg-yellow-400' },
+  { type: 'angry', emoji: '😠', label: 'Angry', color: 'bg-red-400' },
+  { type: 'relaxed', emoji: '😌', label: 'Relaxed', color: 'bg-purple-400' },
+];
+
+export const MoodSelector: React.FC<MoodSelectorProps> = ({
+  selectedMood,
+  onSelectMood,
+}) => {
   return (
-    <StyledView className="flex-row flex-wrap justify-center gap-4 p-4">
-      {moods.map((mood) => (
-        <TouchableOpacity
-          key={mood.name}
-          onPress={() => onSelectMood(mood)}
-          className={`items-center p-4 rounded-full ${
-            selectedMood?.name === mood.name ? 'bg-blue-200' : 'bg-gray-100'
-          }`}
-        >
-          <StyledText className="text-3xl">{mood.emoji}</StyledText>
-          <StyledText className="text-sm mt-1">{mood.name}</StyledText>
-        </TouchableOpacity>
-      ))}
-    </StyledView>
+    <View className="w-full p-4">
+      <Text className="text-lg font-semibold mb-4 text-gray-800">How are you feeling?</Text>
+      <View className="flex-row flex-wrap justify-between">
+        {MOODS.map(({ type, emoji, label, color }) => (
+          <TouchableOpacity
+            key={type}
+            onPress={() => onSelectMood(type)}
+            className={`w-[18%] aspect-square rounded-full items-center justify-center mb-2 ${
+              selectedMood === type ? color : 'bg-gray-100'
+            }`}
+          >
+            <Text className="text-2xl">{emoji}</Text>
+            <Text className="text-xs mt-1 text-center">
+              {label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
   );
 }; 

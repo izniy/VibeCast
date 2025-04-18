@@ -1,9 +1,5 @@
 import React from 'react';
-import { View, TextInput } from 'react-native';
-import { styled } from 'nativewind';
-
-const StyledView = styled(View);
-const StyledTextInput = styled(TextInput);
+import { View, TextInput, Text } from 'react-native';
 
 interface JournalEntryProps {
   value: string;
@@ -14,18 +10,20 @@ interface JournalEntryProps {
 export const JournalEntry: React.FC<JournalEntryProps> = ({
   value,
   onChangeText,
-  placeholder = "How are you feeling today?",
+  placeholder = "How are you feeling today?"
 }) => {
   return (
-    <StyledView className="p-4">
-      <StyledTextInput
-        className="bg-white p-4 rounded-lg min-h-[120px] text-base"
+    <View className="w-full p-4">
+      <Text className="text-lg font-semibold mb-2 text-gray-800">Journal Entry</Text>
+      <TextInput
+        className="w-full min-h-[120px] p-3 rounded-lg bg-white border border-gray-200"
         multiline
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
+        placeholderTextColor="#9CA3AF"
         textAlignVertical="top"
       />
-    </StyledView>
+    </View>
   );
 }; 

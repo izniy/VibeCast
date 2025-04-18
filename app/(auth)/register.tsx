@@ -73,10 +73,10 @@ export default function SignupScreen() {
 
     try {
       setLoading(true);
-      const { error } = await signUp(email, password);
+      const { error: signUpError } = await signUp(email, password);
       
-      if (error) {
-        Alert.alert('Error', getErrorMessage(error));
+      if (signUpError) {
+        Alert.alert('Error', signUpError.message);
         return;
       }
       
@@ -88,7 +88,7 @@ export default function SignupScreen() {
     } catch (err) {
       Alert.alert(
         'Error',
-        err instanceof Error ? getErrorMessage(err) : 'An unexpected error occurred'
+        err instanceof Error ? err.message : 'An unexpected error occurred'
       );
     } finally {
       setLoading(false);

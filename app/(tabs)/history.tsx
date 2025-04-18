@@ -1,66 +1,72 @@
 import React, { useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity } from 'react-native';
-import { styled } from 'nativewind';
-import { useMood } from '../hooks/useMood';
 import { format } from 'date-fns';
+import { useAuth } from '../../providers/AuthProvider';
+import { useMood } from '../../hooks/useMood';
+import { MoodEntry } from '../../services/mood';
 
-const StyledView = styled(View);
-const StyledText = styled(Text);
-
-export default function History() {
-  const { moodLogs, loading, fetchMoodLogs, deleteMoodLog } = useMood();
+export default function HistoryScreen() {
+  const { user } = useAuth();
+  const { moodHistory, loading, error, getMoodHistory, deleteMood } = useMood();
 
   useEffect(() => {
-    fetchMoodLogs();
-  }, [fetchMoodLogs]);
+    if (user) {
+      getMoodHistory(user.id);
+    }
+  }, [user]);
 
-  function renderMoodLog({ item }) {
-    return (
-      <StyledView className="bg-white p-4 mb-4 rounded-lg shadow-sm">
-        <StyledView className="flex-row justify-between items-center mb-2">
-          <StyledText className="text-lg font-semibold">{item.mood}</StyledText>
-          <StyledText className="text-gray-500">
-            {format(new Date(item.created_at), 'MMM d, yyyy h:mm a')}
-          </StyledText>
-        </StyledView>
-
-        {item.journal_entry ? (
-          <StyledText className="text-gray-700 mb-2">{item.journal_entry}</StyledText>
-        ) : null}
-
-        <TouchableOpacity
-          onPress={() => deleteMoodLog(item.id)}
-          className="self-end"
-        >
-          <StyledText className="text-red-500">Delete</StyledText>
-        </TouchableOpacity>
-      </StyledView>
-    );
-  }
+  const renderMoodItem = ({ item }: { item: MoodEntry }) => (
+    <View className="bg-white p-4 mb-4 rounded-lg shadow-sm">
+      <View className="flex-row justify-between items-center mb-2">
+        <Text className="text-lg font-semibold text-gray-800">
+          {item.mood}
+        </Text>
+        <Text className="text-sm text-gray-500">
+          {format(new Date(item.created_at), 'MMM d, yyyy h:mm a')}
+        </Text>
+      </View>
+      {item.entry && (
+        <Text className="text-gray-600 mb-2">{item.entry}</Text>
+      )}
+      <TouchableOpacity
+        onPress={() => user && deleteMood(user.id, item.id)}
+        className="self-end"
+      >
+        <Text className="text-red-500">Delete</Text>
+      </TouchableOpacity>
+    </View>
+  );
 
   if (loading) {
     return (
-      <StyledView className="flex-1 justify-center items-center">
-        <StyledText>Loading...</StyledText>
-      </StyledView>
+      <View className="flex-1 items-center justify-center">
+        <ActivityIndicator size="large" color="#6366F1" />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View className="flex-1 items-center justify-center p-4">
+        <Text className="text-red-500 text-center">{error}</Text>
+      </View>
     );
   }
 
   return (
-    <StyledView className="flex-1 bg-gray-100">
+    <View className="flex-1 bg-gray-50 p-4">
+      <Text className="text-2xl font-bold mb-4">Mood History</Text>
       <FlatList
-        data={moodLogs}
-        renderItem={renderMoodLog}
+        data={moodHistory}
+        renderItem={renderMoodItem}
         keyExtractor={(item) => item.id}
-        contentContainerClassName="p-4"
+        contentContainerStyle={{ paddingBottom: 20 }}
         ListEmptyComponent={
-          <StyledView className="flex-1 justify-center items-center p-4">
-            <StyledText className="text-gray-500 text-center">
-              No mood logs yet. Start tracking your mood from the home screen!
-            </StyledText>
-          </StyledView>
+          <Text className="text-center text-gray-500">
+            No mood entries yet
+          </Text>
         }
       />
-    </StyledView>
+    </View>
   );
 }

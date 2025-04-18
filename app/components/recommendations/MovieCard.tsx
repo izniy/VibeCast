@@ -1,44 +1,97 @@
 import React from 'react';
-import { View, Text, Image, TouchableOpacity } from 'react-native';
-import { styled } from 'nativewind';
+import { View, Text, Image, TouchableOpacity, StyleSheet, Linking } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
-const StyledView = styled(View);
-const StyledText = styled(Text);
-const StyledImage = styled(Image);
-
-interface MovieCardProps {
+interface Movie {
+  id: number;
   title: string;
-  posterPath: string;
-  releaseYear: string;
-  rating: number;
-  onPress: () => void;
+  poster_path: string;
+  release_date: string;
+  vote_average: number;
 }
 
-export const MovieCard: React.FC<MovieCardProps> = ({
-  title,
-  posterPath,
-  releaseYear,
-  rating,
-  onPress,
-}) => {
+interface MovieCardProps {
+  movie: Movie;
+}
+
+export function MovieCard({ movie }: MovieCardProps) {
+  const handlePress = async () => {
+    const tmdbUrl = `https://www.themoviedb.org/movie/${movie.id}`;
+    await Linking.openURL(tmdbUrl);
+  };
+
+  const posterUrl = `https://image.tmdb.org/t/p/w500${movie.poster_path}`;
+  const year = movie.release_date.split('-')[0];
+  const rating = Math.round(movie.vote_average * 10) / 10;
+
   return (
-    <TouchableOpacity onPress={onPress}>
-      <StyledView className="bg-white rounded-xl p-4 m-2 shadow-sm">
-        <StyledImage
-          source={{ uri: `https://image.tmdb.org/t/p/w500${posterPath}` }}
-          className="w-full h-60 rounded-lg"
-          resizeMode="cover"
-        />
-        <StyledView className="mt-2">
-          <StyledText className="text-lg font-semibold" numberOfLines={1}>
-            {title}
-          </StyledText>
-          <StyledView className="flex-row justify-between mt-1">
-            <StyledText className="text-gray-600">{releaseYear}</StyledText>
-            <StyledText className="text-yellow-500">★ {rating.toFixed(1)}</StyledText>
-          </StyledView>
-        </StyledView>
-      </StyledView>
+    <TouchableOpacity style={styles.container} onPress={handlePress}>
+      <Image 
+        source={{ uri: posterUrl }} 
+        style={styles.image}
+        resizeMode="cover"
+      />
+      <View style={styles.content}>
+        <Text numberOfLines={1} style={styles.title}>
+          {movie.title}
+        </Text>
+        <View style={styles.details}>
+          <Text style={styles.year}>{year}</Text>
+          <View style={styles.rating}>
+            <Ionicons name="star" size={14} color="#F59E0B" />
+            <Text style={styles.ratingText}>{rating}</Text>
+          </View>
+        </View>
+      </View>
     </TouchableOpacity>
   );
-}; 
+}
+
+const styles = StyleSheet.create({
+  container: {
+    width: 140,
+    marginRight: 16,
+    backgroundColor: 'white',
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  image: {
+    width: '100%',
+    height: 210,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+  },
+  content: {
+    padding: 12,
+  },
+  title: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 4,
+  },
+  details: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  year: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  rating: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  ratingText: {
+    fontSize: 12,
+    color: '#F59E0B',
+    fontWeight: '500',
+  },
+}); 

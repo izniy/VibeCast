@@ -1,34 +1,17 @@
 import { Stack } from 'expo-router';
-import { useAuth } from '../providers/AuthProvider';
-import { Redirect } from 'expo-router';
+import { useAuth } from '../../app/providers/AuthProvider';
+import { View, ActivityIndicator } from 'react-native';
 
 export default function AuthLayout() {
-  const { user, loading } = useAuth();
+  const { isLoading } = useAuth();
 
-  // Handle the loading state
-  if (loading) {
-    return null; // Or a loading screen component
+  if (isLoading) {
+    return (
+      <View className="flex-1 items-center justify-center">
+        <ActivityIndicator size="large" color="#6366F1" />
+      </View>
+    );
   }
 
-  // If user is authenticated, redirect to the main app
-  if (user) {
-    return <Redirect href="/(tabs)" />;
-  }
-
-  return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen
-        name="login"
-        options={{
-          title: 'Sign In',
-        }}
-      />
-      <Stack.Screen
-        name="register"
-        options={{
-          title: 'Create Account',
-        }}
-      />
-    </Stack>
-  );
+  return <Stack screenOptions={{ headerShown: false }} />;
 }

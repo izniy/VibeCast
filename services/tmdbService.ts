@@ -1,8 +1,12 @@
-const TMDB_API_KEY = 'YOUR_TMDB_API_KEY';
+if (!process.env.EXPO_PUBLIC_TMDB_READ_ACCESS_TOKEN) {
+  throw new Error('TMDB Read Access Token is not configured in environment variables');
+}
+
+const TMDB_ACCESS_TOKEN = process.env.EXPO_PUBLIC_TMDB_READ_ACCESS_TOKEN;
 const BASE_URL = 'https://api.themoviedb.org/3';
 const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
 
-interface TMDBMovie {
+export interface Movie {
   id: number;
   title: string;
   poster_path: string;
@@ -13,26 +17,26 @@ interface TMDBMovie {
 const moodToGenres: Record<string, number[]> = {
   happy: [35, 10402], // Comedy, Music
   sad: [18, 10749], // Drama, Romance
-  energetic: [28, 12], // Action, Adventure
+  stressed: [53], // Thriller
   relaxed: [16, 14], // Animation, Fantasy
-  focused: [99, 36], // Documentary, History
+  angry: [28, 80], // Action, Crime
 };
 
-export async function getMovieRecommendations(mood: string): Promise<Array<{
-  id: number;
-  title: string;
-  posterUrl: string;
-  releaseYear: string;
-  rating: number;
-}>> {
+export async function getMovieRecommendations(mood: string): Promise<Movie[]> {
   try {
     const genres = moodToGenres[mood.toLowerCase()] || [28, 35]; // Default to Action and Comedy
-    const genreIds = genres.join(',');
+    const params = new URLSearchParams({
+      with_genres: genres.join(','),
+      sort_by: 'popularity.desc',
+      language: 'en-US',
+      page: '1'
+    });
 
     const response = await fetch(
-      `${BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_genres=${genreIds}&sort_by=popularity.desc&page=1`,
+      `${BASE_URL}/discover/movie?${params}`,
       {
         headers: {
+          'Authorization': `Bearer ${TMDB_ACCESS_TOKEN}`,
           'Content-Type': 'application/json',
         },
       }
@@ -43,16 +47,16 @@ export async function getMovieRecommendations(mood: string): Promise<Array<{
     }
 
     const data = await response.json();
-    return data.results.slice(0, 10).map((movie: TMDBMovie) => ({
+    return data.results.slice(0, 10).map((movie: any): Movie => ({
       id: movie.id,
       title: movie.title,
-      posterUrl: movie.poster_path ? `${IMAGE_BASE_URL}${movie.poster_path}` : '',
-      releaseYear: movie.release_date ? movie.release_date.split('-')[0] : '',
-      rating: Math.round(movie.vote_average * 10) / 10,
+      poster_path: movie.poster_path || '',
+      release_date: movie.release_date || '',
+      vote_average: Math.round(movie.vote_average * 10) / 10
     }));
   } catch (error) {
     console.error('Error getting movie recommendations:', error);
-    throw error;
+    return [];
   }
 }
 
