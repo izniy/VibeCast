@@ -60,16 +60,17 @@ export default function HistoryScreen() {
 
   const getDominantMood = useCallback((entries: MoodEntry[]): MoodType => {
     if (entries.length === 0) {
-      return 'happy' as MoodType; // Default mood if no entries
+      return 'happy';
     }
 
     const moodCounts = new Map<MoodType, number>();
     
     entries.forEach(entry => {
-      moodCounts.set(entry.mood, (moodCounts.get(entry.mood) || 0) + 1);
+      const mood = entry.mood as MoodType;
+      moodCounts.set(mood, (moodCounts.get(mood) || 0) + 1);
     });
 
-    let dominantMood = entries[0].mood;
+    let dominantMood: MoodType = entries[0].mood as MoodType;
     let maxCount = moodCounts.get(dominantMood) || 0;
 
     moodCounts.forEach((count, mood) => {
