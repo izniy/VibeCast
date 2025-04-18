@@ -1,19 +1,8 @@
 import { supabase } from '../lib/supabase';
+import type { Database } from '../types/database';
 
-export interface MoodEntry {
-  id: string;
-  user_id: string;
-  mood: string;
-  journal_entry?: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface CreateMoodEntryParams {
-  user_id: string;
-  mood: string;
-  journal_entry?: string;
-}
+export type MoodEntry = Database['public']['Tables']['mood_entries']['Row'];
+export type CreateMoodEntryParams = Omit<Database['public']['Tables']['mood_entries']['Insert'], 'id' | 'created_at' | 'updated_at'>;
 
 class MoodService {
   async getMoodEntries(userId: string): Promise<MoodEntry[]> {
@@ -31,10 +20,10 @@ class MoodService {
     return data || [];
   }
 
-  async getLatestMood(userId: string): Promise<string | null> {
+  async getLatestMoodEntry(userId: string): Promise<MoodEntry | null> {
     const { data, error } = await supabase
       .from('mood_entries')
-      .select('mood')
+      .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(1)
@@ -45,11 +34,16 @@ class MoodService {
         // No mood entries found
         return null;
       }
-      console.error('Error fetching latest mood:', error);
+      console.error('Error fetching latest mood entry:', error);
       throw error;
     }
 
-    return data?.mood || null;
+    return data;
+  }
+
+  async getLatestMood(userId: string): Promise<string | null> {
+    const entry = await this.getLatestMoodEntry(userId);
+    return entry?.mood || null;
   }
 
   async createMoodEntry(params: CreateMoodEntryParams): Promise<MoodEntry> {

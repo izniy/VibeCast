@@ -1,161 +1,17 @@
-import { supabase } from './supabaseClient';
-import { PostgrestError } from '@supabase/supabase-js';
+import { supabase } from '../lib/supabase';
+import type { Database } from '../types/database';
 
-// Define valid mood types to match the database enum
+export type MoodEntry = Database['public']['Tables']['mood_entries']['Row'];
+export type CreateMoodEntryParams = Omit<Database['public']['Tables']['mood_entries']['Insert'], 'id' | 'created_at' | 'updated_at'>;
+
 export type MoodType = 'happy' | 'sad' | 'stressed' | 'angry' | 'relaxed';
+export type ValidMood = MoodType;
 
-export interface MoodEntry {
-  id: string;
-  user_id: string;
-  mood: string;
-  entry?: string;
-  created_at: string;
-}
-
-export type MoodServiceResponse<T> = {
-  data: T | null;
-  error: PostgrestError | null;
+export const isValidMood = (mood: string): mood is ValidMood => {
+  return ['happy', 'sad', 'stressed', 'angry', 'relaxed'].includes(mood);
 };
 
-/**
- * Log a new mood entry for a user
- */
-export async function logMoodEntry(
-  userId: string,
-  mood: MoodType,
-  journal: string
-): Promise<MoodServiceResponse<MoodEntry>> {
-  try {
-    const response = await supabase
-      .from('mood_entries')
-      .insert({
-        user_id: userId,
-        mood,
-        journal,
-      })
-      .select()
-      .single();
-
-    return {
-      data: response.data as MoodEntry | null,
-      error: response.error
-    };
-  } catch (error) {
-    return {
-      data: null,
-      error: error as PostgrestError
-    };
-  }
-}
-
-/**
- * Get all mood logs for a user, ordered by creation date
- */
-export async function getMoodLogs(
-  userId: string
-): Promise<MoodServiceResponse<MoodEntry[]>> {
-  try {
-    const response = await supabase
-      .from('mood_entries')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
-
-    return {
-      data: response.data as MoodEntry[] | null,
-      error: response.error
-    };
-  } catch (error) {
-    return {
-      data: null,
-      error: error as PostgrestError
-    };
-  }
-}
-
-/**
- * Get a specific mood log by ID
- */
-export async function getMoodLogById(
-  userId: string,
-  logId: string
-): Promise<MoodServiceResponse<MoodEntry>> {
-  try {
-    const response = await supabase
-      .from('mood_entries')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('id', logId)
-      .single();
-
-    return {
-      data: response.data as MoodEntry | null,
-      error: response.error
-    };
-  } catch (error) {
-    return {
-      data: null,
-      error: error as PostgrestError
-    };
-  }
-}
-
-/**
- * Delete a specific mood log
- */
-export async function deleteMoodLog(
-  userId: string,
-  logId: string
-): Promise<MoodServiceResponse<null>> {
-  try {
-    const { error } = await supabase
-      .from('mood_entries')
-      .delete()
-      .eq('user_id', userId)
-      .eq('id', logId);
-
-    return {
-      data: null,
-      error
-    };
-  } catch (error) {
-    return {
-      data: null,
-      error: error as PostgrestError
-    };
-  }
-}
-
-/**
- * Update a specific mood log's mood and/or journal
- */
-export async function updateMoodLog(
-  userId: string,
-  logId: string,
-  updates: Partial<Pick<MoodEntry, 'mood' | 'journal'>>
-): Promise<MoodServiceResponse<MoodEntry>> {
-  try {
-    const response = await supabase
-      .from('mood_entries')
-      .update(updates)
-      .eq('user_id', userId)
-      .eq('id', logId)
-      .select()
-      .single();
-
-    return {
-      data: response.data as MoodEntry | null,
-      error: response.error
-    };
-  } catch (error) {
-    return {
-      data: null,
-      error: error as PostgrestError
-    };
-  }
-}
-
-export const getMoodHistory = async (userId: string): Promise<MoodEntry[]> => {
+export async function getMoodEntries(userId: string): Promise<MoodEntry[]> {
   const { data, error } = await supabase
     .from('mood_entries')
     .select('*')
@@ -163,44 +19,57 @@ export const getMoodHistory = async (userId: string): Promise<MoodEntry[]> => {
     .order('created_at', { ascending: false });
 
   if (error) {
-    throw new Error(error.message);
+    console.error('Error fetching mood entries:', error);
+    throw error;
   }
 
   return data || [];
-};
+}
 
-export const createMoodEntry = async (
-  userId: string,
-  mood: string,
-  entry?: string
-): Promise<MoodEntry> => {
+export async function getLatestMoodEntry(userId: string): Promise<MoodEntry | null> {
   const { data, error } = await supabase
     .from('mood_entries')
-    .insert([
-      {
-        user_id: userId,
-        mood,
-        entry,
-      },
-    ])
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') {
+      // No mood entries found
+      return null;
+    }
+    console.error('Error fetching latest mood entry:', error);
+    throw error;
+  }
+
+  return data;
+}
+
+export async function createMoodEntry(params: CreateMoodEntryParams): Promise<MoodEntry> {
+  const { data, error } = await supabase
+    .from('mood_entries')
+    .insert([params])
     .select()
     .single();
 
   if (error) {
-    throw new Error(error.message);
+    console.error('Error creating mood entry:', error);
+    throw error;
   }
 
   return data;
-};
+}
 
-export const deleteMoodEntry = async (userId: string, entryId: string): Promise<void> => {
+export async function deleteMoodEntry(entryId: string): Promise<void> {
   const { error } = await supabase
     .from('mood_entries')
     .delete()
-    .eq('id', entryId)
-    .eq('user_id', userId);
+    .eq('id', entryId);
 
   if (error) {
-    throw new Error(error.message);
+    console.error('Error deleting mood entry:', error);
+    throw error;
   }
-}; 
+} 
