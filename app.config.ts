@@ -3,7 +3,7 @@ import { ExpoConfig, ConfigContext } from 'expo/config';
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: 'VibeCast',
-  slug: 'vibecast',
+  slug: 'mood-tracker',
   version: '1.0.0',
   orientation: 'portrait',
   icon: './assets/icon.png',
@@ -35,6 +35,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     // because they start with EXPO_PUBLIC_
   },
   plugins: [
+    'expo-font',
+    'expo-secure-store',
     'expo-router'
   ]
 });
