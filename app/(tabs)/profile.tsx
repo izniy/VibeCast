@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Image, ScrollView, Alert } from 'react-native';
-import { useAuth } from '../../lib/auth';
+import { useAuth } from '../../app/providers/AuthProvider';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 

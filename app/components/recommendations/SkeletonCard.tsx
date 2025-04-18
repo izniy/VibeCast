@@ -1,89 +1,106 @@
 import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet, Animated, Easing } from 'react-native';
+import { View, StyleSheet, Animated } from 'react-native';
 
 interface SkeletonCardProps {
   type: 'music' | 'movie';
 }
 
 export function SkeletonCard({ type }: SkeletonCardProps) {
-  const shimmerValue = useRef(new Animated.Value(0)).current;
+  const opacity = useRef(new Animated.Value(0.3)).current;
 
   useEffect(() => {
-    const shimmerAnimation = Animated.loop(
+    const animation = Animated.loop(
       Animated.sequence([
-        Animated.timing(shimmerValue, {
-          toValue: 1,
-          duration: 1000,
-          easing: Easing.linear,
+        Animated.timing(opacity, {
+          toValue: 0.7,
+          duration: 800,
           useNativeDriver: true,
         }),
-        Animated.timing(shimmerValue, {
-          toValue: 0,
-          duration: 1000,
-          easing: Easing.linear,
+        Animated.timing(opacity, {
+          toValue: 0.3,
+          duration: 800,
           useNativeDriver: true,
         }),
       ])
     );
 
-    shimmerAnimation.start();
+    animation.start();
 
-    return () => shimmerAnimation.stop();
+    return () => animation.stop();
   }, []);
 
-  const opacity = shimmerValue.interpolate({
-    inputRange: [0, 0.5, 1],
-    outputRange: [0.3, 0.5, 0.3],
-  });
-
-  const imageHeight = type === 'music' ? 160 : 210;
+  const imageHeight = type === 'movie' ? 300 : 200;
 
   return (
-    <View style={[styles.container, type === 'music' ? styles.musicCard : styles.movieCard]}>
-      <Animated.View style={[styles.image, { opacity, height: imageHeight }]} />
+    <View style={styles.card}>
+      <Animated.View
+        style={[
+          styles.image,
+          { height: imageHeight, opacity },
+        ]}
+      />
       <View style={styles.content}>
-        <Animated.View style={[styles.title, { opacity }]} />
-        <Animated.View style={[styles.subtitle, { opacity }]} />
+        <Animated.View
+          style={[styles.title, { opacity }]}
+        />
+        <Animated.View
+          style={[styles.subtitle, { opacity }]}
+        />
+        <View style={styles.footer}>
+          <Animated.View
+            style={[styles.footerItem, { opacity }]}
+          />
+        </View>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    marginRight: 16,
+  card: {
     backgroundColor: 'white',
     borderRadius: 12,
-    overflow: 'hidden',
+    marginRight: 16,
+    width: 200,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowRadius: 3,
     elevation: 3,
   },
-  musicCard: {
-    width: 160,
-  },
-  movieCard: {
-    width: 140,
-  },
   image: {
-    backgroundColor: '#E5E7EB',
     width: '100%',
+    backgroundColor: '#E5E7EB',
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
   },
   content: {
     padding: 12,
   },
   title: {
-    height: 16,
+    height: 20,
     backgroundColor: '#E5E7EB',
     borderRadius: 4,
     marginBottom: 8,
   },
   subtitle: {
+    height: 16,
+    backgroundColor: '#E5E7EB',
+    borderRadius: 4,
+    marginBottom: 12,
+    width: '80%',
+  },
+  footer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  footerItem: {
     height: 14,
     backgroundColor: '#E5E7EB',
     borderRadius: 4,
-    width: '70%',
+    width: '40%',
   },
 }); 

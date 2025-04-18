@@ -1,19 +1,25 @@
 import React, { useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { format } from 'date-fns';
-import { useAuth } from '../../providers/AuthProvider';
-import { useMood } from '../../hooks/useMood';
-import { MoodEntry } from '../../services/mood';
+import { useAuth } from '../providers/AuthProvider';
+import { useMood } from '../hooks/useMood';
+import type { MoodEntry } from '../services/moodService';
 
 export default function HistoryScreen() {
   const { user } = useAuth();
-  const { moodHistory, loading, error, getMoodHistory, deleteMood } = useMood();
+  const { moodHistory, loading, error, refreshHistory, removeMoodEntry } = useMood();
 
   useEffect(() => {
     if (user) {
-      getMoodHistory(user.id);
+      refreshHistory();
     }
   }, [user]);
+
+  const handleDelete = async (entryId: string) => {
+    if (!user) return;
+    await removeMoodEntry(entryId);
+    await refreshHistory();
+  };
 
   const renderMoodItem = ({ item }: { item: MoodEntry }) => (
     <View className="bg-white p-4 mb-4 rounded-lg shadow-sm">
@@ -25,11 +31,11 @@ export default function HistoryScreen() {
           {format(new Date(item.created_at), 'MMM d, yyyy h:mm a')}
         </Text>
       </View>
-      {item.entry && (
-        <Text className="text-gray-600 mb-2">{item.entry}</Text>
+      {item.journal_entry && (
+        <Text className="text-gray-600 mb-2">{item.journal_entry}</Text>
       )}
       <TouchableOpacity
-        onPress={() => user && deleteMood(user.id, item.id)}
+        onPress={() => handleDelete(item.id)}
         className="self-end"
       >
         <Text className="text-red-500">Delete</Text>

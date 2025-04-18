@@ -1,14 +1,14 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, ScrollView, StyleSheet, ActivityIndicator, TouchableOpacity, Animated } from 'react-native';
-import { useAuth } from '../../app/providers/AuthProvider';
-import { moodService } from '../../services/moodService';
-import { MusicCard } from '../../app/components/recommendations/MusicCard';
-import { MovieCard } from '../../app/components/recommendations/MovieCard';
-import { SkeletonCard } from '../../app/components/recommendations/SkeletonCard';
-import { getSpotifyRecommendations, SpotifyTrack } from '../../services/spotifyService';
-import { getMovieRecommendations, Movie } from '../../services/tmdbService';
+import { useAuth } from '../providers/AuthProvider';
+import { moodService } from '../services/moodService';
+import { MusicCard } from '../components/recommendations/MusicCard';
+import { MovieCard } from '../components/recommendations/MovieCard';
+import { SkeletonCard } from '../components/recommendations/SkeletonCard';
+import { getSpotifyRecommendations, SpotifyTrack } from '../services/spotifyService';
+import { getMovieRecommendations, Movie } from '../services/tmdbService';
 import { Ionicons } from '@expo/vector-icons';
-import { Database } from '../../types/database';
+import { Database } from '../types/database';
 
 type MoodEntry = Database['public']['Tables']['mood_entries']['Row'];
 type ValidMood = 'happy' | 'sad' | 'stressed' | 'angry' | 'relaxed';

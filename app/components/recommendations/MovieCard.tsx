@@ -1,68 +1,63 @@
 import React from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet, Linking } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-
-interface Movie {
-  id: number;
-  title: string;
-  poster_path: string;
-  release_date: string;
-  vote_average: number;
-}
+import type { Movie } from '../../services/tmdbService';
 
 interface MovieCardProps {
   movie: Movie;
 }
 
 export function MovieCard({ movie }: MovieCardProps) {
-  const handlePress = async () => {
-    const tmdbUrl = `https://www.themoviedb.org/movie/${movie.id}`;
-    await Linking.openURL(tmdbUrl);
-  };
-
-  const posterUrl = `https://image.tmdb.org/t/p/w500${movie.poster_path}`;
-  const year = movie.release_date.split('-')[0];
-  const rating = Math.round(movie.vote_average * 10) / 10;
-
   return (
-    <TouchableOpacity style={styles.container} onPress={handlePress}>
-      <Image 
-        source={{ uri: posterUrl }} 
+    <View style={styles.card}>
+      <Image
+        source={{ 
+          uri: `https://image.tmdb.org/t/p/w500${movie.poster_path}` 
+        }}
         style={styles.image}
-        resizeMode="cover"
+        defaultSource={require('../../../assets/images/default-movie.png')}
       />
       <View style={styles.content}>
-        <Text numberOfLines={1} style={styles.title}>
+        <Text style={styles.title} numberOfLines={1}>
           {movie.title}
         </Text>
-        <View style={styles.details}>
-          <Text style={styles.year}>{year}</Text>
+        <Text style={styles.overview} numberOfLines={2}>
+          {movie.overview}
+        </Text>
+        <View style={styles.footer}>
           <View style={styles.rating}>
-            <Ionicons name="star" size={14} color="#F59E0B" />
-            <Text style={styles.ratingText}>{rating}</Text>
+            <Ionicons name="star" size={16} color="#F59E0B" />
+            <Text style={styles.ratingText}>
+              {movie.vote_average.toFixed(1)}
+            </Text>
           </View>
+          <Text style={styles.year}>
+            {new Date(movie.release_date).getFullYear()}
+          </Text>
         </View>
       </View>
-    </TouchableOpacity>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    width: 140,
-    marginRight: 16,
+  card: {
     backgroundColor: 'white',
     borderRadius: 12,
-    overflow: 'hidden',
+    marginRight: 16,
+    width: 200,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowRadius: 3,
     elevation: 3,
   },
   image: {
     width: '100%',
-    height: 210,
+    height: 300,
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12,
   },
@@ -70,19 +65,21 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   title: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '600',
     color: '#1F2937',
     marginBottom: 4,
   },
-  details: {
+  overview: {
+    fontSize: 12,
+    color: '#4B5563',
+    marginBottom: 8,
+    lineHeight: 16,
+  },
+  footer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-  },
-  year: {
-    fontSize: 12,
-    color: '#6B7280',
   },
   rating: {
     flexDirection: 'row',
@@ -90,8 +87,12 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   ratingText: {
-    fontSize: 12,
-    color: '#F59E0B',
+    fontSize: 14,
+    color: '#4B5563',
     fontWeight: '500',
+  },
+  year: {
+    fontSize: 14,
+    color: '#4B5563',
   },
 }); 

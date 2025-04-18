@@ -15,11 +15,12 @@ import { Link, useRouter } from 'expo-router';
 import { useAuth } from '../providers/AuthProvider';
 import { useColorScheme } from 'nativewind';
 
-export default function SignupScreen() {
+export default function RegisterScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const { signUp } = useAuth();
   const router = useRouter();
   const { colorScheme } = useColorScheme();
@@ -68,28 +69,22 @@ export default function SignupScreen() {
     return true;
   };
 
-  const handleSignUp = async () => {
-    if (!validateForm()) return;
-
+  const handleRegister = async () => {
     try {
       setLoading(true);
+      setErrorMsg(null);
+
       const { error: signUpError } = await signUp(email, password);
-      
-      if (signUpError) {
-        Alert.alert('Error', signUpError.message);
-        return;
-      }
-      
+
+      if (signUpError) throw signUpError;
+
       Alert.alert(
-        'Success',
-        'Account created successfully! Please check your email to verify your account.',
+        'Registration Successful',
+        'Please check your email for verification instructions.',
         [{ text: 'OK', onPress: () => router.replace('/login') }]
       );
     } catch (err) {
-      Alert.alert(
-        'Error',
-        err instanceof Error ? err.message : 'An unexpected error occurred'
-      );
+      setErrorMsg(err instanceof Error ? err.message : 'An error occurred during registration');
     } finally {
       setLoading(false);
     }
@@ -114,9 +109,9 @@ export default function SignupScreen() {
             </View>
 
             {/* Error Message */}
-            {error && (
+            {errorMsg && (
               <View className="bg-red-50 dark:bg-red-900/30 p-4 rounded-lg">
-                <Text className="text-sm text-red-500 dark:text-red-400">{error}</Text>
+                <Text className="text-sm text-red-500 dark:text-red-400">{errorMsg}</Text>
               </View>
             )}
 
@@ -177,7 +172,7 @@ export default function SignupScreen() {
               className={`mt-6 w-full bg-indigo-500 py-3 rounded-lg items-center ${
                 loading ? 'opacity-70' : 'active:opacity-90'
               }`}
-              onPress={handleSignUp}
+              onPress={handleRegister}
               disabled={loading}
             >
               {loading ? (

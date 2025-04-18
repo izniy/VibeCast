@@ -1,55 +1,38 @@
-import { useState } from 'react';
-import { spotifyService } from '../services/spotify';
-import { tmdbService } from '../services/tmdb';
-
-interface Recommendation {
-  music: any[];
-  movies: any[];
-}
+import { useState, useCallback } from 'react';
+import { getSpotifyRecommendations, type SpotifyTrack } from '../services/spotifyService';
+import { getMovieRecommendations, type Movie } from '../services/tmdbService';
 
 export function useRecommendations() {
-  const [recommendations, setRecommendations] = useState<Recommendation>({
-    music: [],
-    movies: [],
-  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [musicRecommendations, setMusicRecommendations] = useState<SpotifyTrack[]>([]);
+  const [movieRecommendations, setMovieRecommendations] = useState<Movie[]>([]);
 
-  async function fetchRecommendations(mood: string) {
-    setLoading(true);
-    setError(null);
-
+  const fetchRecommendations = useCallback(async (mood: string) => {
     try {
-      const [musicResults, movieResults] = await Promise.all([
-        spotifyService.getRecommendationsByMood(mood),
-        tmdbService.getRecommendationsByMood(mood),
+      setLoading(true);
+      setError(null);
+
+      const [music, movies] = await Promise.all([
+        getSpotifyRecommendations(mood),
+        getMovieRecommendations(mood)
       ]);
 
-      setRecommendations({
-        music: musicResults,
-        movies: movieResults,
-      });
+      setMusicRecommendations(music);
+      setMovieRecommendations(movies);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError('Failed to fetch recommendations');
       console.error('Error fetching recommendations:', err);
     } finally {
       setLoading(false);
     }
-  }
-
-  function clearRecommendations() {
-    setRecommendations({
-      music: [],
-      movies: [],
-    });
-    setError(null);
-  }
+  }, []);
 
   return {
-    recommendations,
     loading,
     error,
-    fetchRecommendations,
-    clearRecommendations,
+    musicRecommendations,
+    movieRecommendations,
+    fetchRecommendations
   };
 } 
