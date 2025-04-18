@@ -57,6 +57,10 @@ export default function RecommendationsScreen() {
         <Text style={styles.title}>Music for Your Mood</Text>
       </View>
       
+      {!loading && recommendations?.musicDescription && (
+        <Text style={styles.description}>{recommendations.musicDescription}</Text>
+      )}
+      
       {loading ? (
         renderSkeletons('music')
       ) : (
@@ -80,6 +84,10 @@ export default function RecommendationsScreen() {
         <Ionicons name="film" size={24} color="#1F2937" />
         <Text style={styles.title}>Movies for Your Mood</Text>
       </View>
+
+      {!loading && recommendations?.movieDescription && (
+        <Text style={styles.description}>{recommendations.movieDescription}</Text>
+      )}
 
       {loading ? (
         renderSkeletons('movie')
@@ -158,5 +166,12 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     textAlign: 'center',
     marginTop: 20,
+  },
+  description: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginHorizontal: 20,
+    marginBottom: 12,
+    fontStyle: 'italic',
   },
 }); 

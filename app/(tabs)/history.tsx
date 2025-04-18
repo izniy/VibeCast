@@ -12,7 +12,19 @@ import { MoodFilterChips } from '../components/history/MoodFilterChips';
 interface GroupedMoodEntries {
   title: string;
   data: MoodEntry[];
+  dominantMood: MoodType;
+  description: string;
 }
+
+const moodDescriptions: Record<MoodType, string> = {
+  happy: 'Bright and joyful moments ✨',
+  sad: 'Reflective and emotional times 💧',
+  energetic: 'Burst of energy and motivation ⚡',
+  relaxed: 'Calm and peaceful vibes 🌿',
+  focused: 'Moments of deep concentration 🎯',
+  romantic: 'Matters of the heart 💖',
+  angry: 'Tense and intense moments 🔥',
+};
 
 export default function HistoryScreen() {
   const { user } = useAuth();
@@ -45,6 +57,30 @@ export default function HistoryScreen() {
       ]
     );
   }, [removeMoodEntry]);
+
+  const getDominantMood = useCallback((entries: MoodEntry[]): MoodType => {
+    if (entries.length === 0) {
+      return 'happy' as MoodType; // Default mood if no entries
+    }
+
+    const moodCounts = new Map<MoodType, number>();
+    
+    entries.forEach(entry => {
+      moodCounts.set(entry.mood, (moodCounts.get(entry.mood) || 0) + 1);
+    });
+
+    let dominantMood = entries[0].mood;
+    let maxCount = moodCounts.get(dominantMood) || 0;
+
+    moodCounts.forEach((count, mood) => {
+      if (count > maxCount) {
+        maxCount = count;
+        dominantMood = mood;
+      }
+    });
+
+    return dominantMood;
+  }, []);
 
   const filteredAndGroupedEntries = useMemo(() => {
     if (!moodHistory.length) return [];
@@ -79,15 +115,21 @@ export default function HistoryScreen() {
       );
     });
 
-    return Object.entries(groups).map(([title, data]) => ({
-      title,
-      data,
-    }));
-  }, [moodHistory, selectedMood]);
+    return Object.entries(groups).map(([title, data]) => {
+      const dominantMood = getDominantMood(data);
+      return {
+        title,
+        data,
+        dominantMood,
+        description: moodDescriptions[dominantMood],
+      };
+    });
+  }, [moodHistory, selectedMood, getDominantMood]);
 
-  const renderSectionHeader = useCallback(({ title }: { title: string }) => (
+  const renderSectionHeader = useCallback(({ title, description }: { title: string; description: string }) => (
     <View style={styles.sectionHeader}>
       <Text style={styles.sectionTitle}>{title}</Text>
+      <Text style={styles.sectionDescription}>{description}</Text>
     </View>
   ), []);
 
@@ -194,6 +236,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#374151',
     letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  sectionDescription: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontStyle: 'italic',
   },
   errorText: {
     color: '#EF4444',

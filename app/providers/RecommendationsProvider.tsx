@@ -8,6 +8,8 @@ import { getMovieRecommendations } from '../services/tmdb';
 interface Recommendations {
   music: SpotifyTrack[];
   movies: Movie[];
+  musicDescription: string;
+  movieDescription: string;
   lastMood: MoodType;
 }
 
@@ -43,14 +45,16 @@ export function RecommendationsProvider({ children }: RecommendationsProviderPro
       setLoading(true);
       setError(null);
 
-      const [musicResults, movieResults] = await Promise.all([
+      const [musicData, movieData] = await Promise.all([
         getSpotifyRecommendations(mood),
         getMovieRecommendations(mood)
       ]);
 
       setRecommendations({
-        music: musicResults,
-        movies: movieResults,
+        music: musicData.tracks,
+        movies: movieData.movies,
+        musicDescription: musicData.description,
+        movieDescription: movieData.description,
         lastMood: mood
       });
     } catch (err) {
