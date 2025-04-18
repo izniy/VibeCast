@@ -1,164 +1,183 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
+  StyleSheet,
   TextInput,
   TouchableOpacity,
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  TouchableWithoutFeedback,
-  Keyboard,
-  Alert,
+  ScrollView,
 } from 'react-native';
-import { Link, useRouter } from 'expo-router';
+import { Text } from 'react-native-paper';
+import { useRouter } from 'expo-router';
 import { useAuth } from '../providers/AuthProvider';
-import { useColorScheme } from 'nativewind';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const { signIn } = useAuth();
+  const [showPassword, setShowPassword] = useState(false);
+  const { signIn, error, isLoading, clearError } = useAuth();
   const router = useRouter();
-  const { colorScheme } = useColorScheme();
-
-  const getErrorMessage = (error: Error): string => {
-    const message = error.message.toLowerCase();
-    
-    if (message.includes('invalid login credentials')) {
-      return 'Invalid email or password';
-    }
-    if (message.includes('invalid email')) {
-      return 'Please enter a valid email address';
-    }
-    if (message.includes('password')) {
-      return 'Password must be at least 6 characters long';
-    }
-    if (message.includes('rate limit')) {
-      return 'Too many login attempts. Please try again later';
-    }
-    return 'An error occurred during sign in. Please try again';
-  };
 
   const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const { error } = await signIn(email, password);
-      
-      if (error) {
-        Alert.alert('Error', getErrorMessage(error));
-        return;
-      }
-      
-      router.replace('/(tabs)');
-    } catch (err) {
-      Alert.alert(
-        'Error',
-        err instanceof Error ? getErrorMessage(err) : 'An unexpected error occurred'
-      );
-    } finally {
-      setLoading(false);
-    }
+    if (!email || !password) return;
+    await signIn(email, password);
   };
 
   return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        className="flex-1"
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.container}
+    >
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
       >
-        <View className="flex-1 justify-center p-6 bg-gray-50 dark:bg-gray-900">
-          <View className="space-y-6">
-            {/* Header */}
-            <View className="space-y-2">
-              <Text className="text-3xl font-bold text-gray-900 dark:text-white">
-                Welcome back
-              </Text>
-              <Text className="text-base text-gray-600 dark:text-gray-400">
-                Sign in to your account to continue
-              </Text>
-            </View>
-
-            {/* Error Message */}
-            {/* {error && (
-              <View className="bg-red-50 dark:bg-red-900/30 p-4 rounded-lg">
-                <Text className="text-sm text-red-500 dark:text-red-400">{error}</Text>
-              </View>
-            )} */}
-
-            {/* Form */}
-            <View className="space-y-4">
-              <View>
-                <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Email
-                </Text>
-                <TextInput
-                  className="w-full bg-white dark:bg-gray-800 px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white"
-                  placeholder="Enter your email"
-                  placeholderTextColor={colorScheme === 'dark' ? '#9CA3AF' : '#6B7280'}
-                  value={email}
-                  onChangeText={setEmail}
-                  autoCapitalize="none"
-                  autoComplete="email"
-                  keyboardType="email-address"
-                />
-              </View>
-
-              <View>
-                <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Password
-                </Text>
-                <TextInput
-                  className="w-full bg-white dark:bg-gray-800 px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white"
-                  placeholder="Enter your password"
-                  placeholderTextColor={colorScheme === 'dark' ? '#9CA3AF' : '#6B7280'}
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry
-                  autoComplete="password"
-                />
-              </View>
-            </View>
-
-            {/* Login Button */}
-            <TouchableOpacity
-              className={`mt-6 w-full bg-indigo-500 py-3 rounded-lg items-center ${
-                loading ? 'opacity-70' : 'active:opacity-90'
-              }`}
-              onPress={handleLogin}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator color="white" />
-              ) : (
-                <Text className="text-white font-semibold text-base">
-                  Sign In
-                </Text>
-              )}
-            </TouchableOpacity>
-
-            {/* Sign Up Link */}
-            <View className="flex-row justify-center mt-6">
-              <Text className="text-gray-600 dark:text-gray-400">
-                Don't have an account?{' '}
-              </Text>
-              <Link href="/register" asChild>
-                <TouchableOpacity>
-                  <Text className="text-indigo-500 dark:text-indigo-400 font-semibold">
-                    Sign Up
-                  </Text>
-                </TouchableOpacity>
-              </Link>
-            </View>
-          </View>
+        <View style={styles.header}>
+          <Text variant="headlineLarge" style={styles.title}>Welcome Back</Text>
+          <Text variant="bodyLarge" style={styles.subtitle}>
+            Sign in to continue tracking your moods
+          </Text>
         </View>
-      </KeyboardAvoidingView>
-    </TouchableWithoutFeedback>
+
+        <View style={styles.form}>
+          {error && (
+            <Text style={styles.error} onPress={clearError}>
+              {error}
+            </Text>
+          )}
+
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              editable={!isLoading}
+            />
+          </View>
+
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={[styles.input, { paddingRight: 44 }]}
+              placeholder="Password"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!showPassword}
+              editable={!isLoading}
+            />
+            <TouchableOpacity
+              style={styles.eyeIcon}
+              onPress={() => setShowPassword(!showPassword)}
+            >
+              <Ionicons
+                name={showPassword ? 'eye-off' : 'eye'}
+                size={24}
+                color="#6B7280"
+              />
+            </TouchableOpacity>
+          </View>
+
+          <TouchableOpacity
+            style={[styles.button, isLoading && styles.buttonDisabled]}
+            onPress={handleLogin}
+            disabled={isLoading}
+          >
+            <Text style={styles.buttonText}>
+              {isLoading ? 'Signing in...' : 'Sign In'}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.linkButton}
+            onPress={() => router.push('/signup' as any)}
+            disabled={isLoading}
+          >
+            <Text style={styles.linkText}>
+              Don't have an account? Sign up
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F3F4F6',
+  },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    padding: 20,
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#6B7280',
+    textAlign: 'center',
+  },
+  form: {
+    gap: 16,
+  },
+  inputContainer: {
+    position: 'relative',
+  },
+  input: {
+    backgroundColor: 'white',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  eyeIcon: {
+    position: 'absolute',
+    right: 12,
+    top: '50%',
+    transform: [{ translateY: -12 }],
+  },
+  button: {
+    backgroundColor: '#6366F1',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  buttonDisabled: {
+    opacity: 0.7,
+  },
+  buttonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  linkButton: {
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  linkText: {
+    color: '#6366F1',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  error: {
+    color: '#EF4444',
+    fontSize: 14,
+    textAlign: 'center',
+  },
+});
