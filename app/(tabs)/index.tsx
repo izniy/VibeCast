@@ -3,13 +3,13 @@ import { View, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/providers/AuthProvider';
-import { supabase } from '@/lib/supabase';
 import { Text } from 'react-native-paper';
 import MoodEntryModal from '@/components/mood/MoodEntryModal';
 import { useColorScheme } from 'nativewind';
 import { useRecommendations } from '@/providers/RecommendationsProvider';
 import type { MoodType } from '@/types/mood';
 import AppHeader from '@/components/common/AppHeader';
+import { useMood } from '@/hooks/useMood';
 
 const MOODS = [
   { emoji: '😊', label: 'happy', color: '#34D399' },
@@ -29,6 +29,7 @@ export default function HomeScreen() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
   const { fetchRecommendations } = useRecommendations();
+  const { addMoodEntry } = useMood();
 
   const handleMoodSelect = (mood: MoodType) => {
     setSelectedMood(mood);
@@ -39,24 +40,7 @@ export default function HomeScreen() {
     if (!selectedMood || !user) return;
 
     try {
-      console.log('Saving mood entry:', {
-        user_id: user.id,
-        mood: selectedMood,
-        journal_entry: journalEntry,
-      });
-
-      const { error, data } = await supabase.from('mood_entries').insert({
-        user_id: user.id,
-        mood: selectedMood,
-        journal_entry: journalEntry,
-      }).select();
-
-      if (error) {
-        console.error('Error saving mood entry:', error);
-        throw error;
-      }
-
-      console.log('Successfully saved mood entry:', data);
+      await addMoodEntry(selectedMood, journalEntry);
       
       // Fetch new recommendations based on the mood
       await fetchRecommendations(selectedMood);

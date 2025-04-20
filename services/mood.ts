@@ -10,11 +10,29 @@ export type CreateMoodEntryParams = {
 };
 
 export async function getMoodEntries(userId: string): Promise<MoodEntry[]> {
+  console.log('🔍 Fetching mood entries...', { userId });
+  
   const { data, error } = await supabase
     .from('mood_entries')
     .select('*')
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
+
+  console.log('🧠 getMoodEntries() response:', {
+    userId,
+    error,
+    count: data?.length,
+    firstEntry: data?.[0] ? {
+      id: data[0].id,
+      mood: data[0].mood,
+      created_at: data[0].created_at
+    } : null,
+    lastEntry: data?.[data.length - 1] ? {
+      id: data[data.length - 1].id,
+      mood: data[data.length - 1].mood,
+      created_at: data[data.length - 1].created_at
+    } : null
+  });
 
   if (error) {
     console.error('Error fetching mood entries:', error);
@@ -51,6 +69,12 @@ export async function getLatestMood(userId: string): Promise<MoodType | null> {
 }
 
 export async function createMoodEntry(params: CreateMoodEntryParams): Promise<MoodEntry> {
+  console.log('📝 Creating mood entry...', {
+    userId: params.user_id,
+    mood: params.mood,
+    hasJournal: !!params.journal_entry
+  });
+
   const { data, error } = await supabase
     .from('mood_entries')
     .insert([{
@@ -65,6 +89,12 @@ export async function createMoodEntry(params: CreateMoodEntryParams): Promise<Mo
     console.error('Error creating mood entry:', error);
     throw error;
   }
+
+  console.log('✅ Created mood entry:', {
+    id: data.id,
+    mood: data.mood,
+    created_at: data.created_at
+  });
 
   return data;
 }

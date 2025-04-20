@@ -34,10 +34,11 @@ export default function HistoryScreen() {
 
   // Add debug logging for component state
   React.useEffect(() => {
-    console.log('🎯 HistoryScreen state:', {
+    console.log('📊 HistoryScreen render:', {
       hasUser: !!user,
       userId: user?.id,
       moodHistoryLength: moodHistory.length,
+      moodHistoryIds: moodHistory.map(entry => entry.id),
       isLoading: loading,
       hasError: !!error,
       selectedMood,
@@ -58,6 +59,7 @@ export default function HistoryScreen() {
     console.log('🔄 Manual refresh triggered');
     fadeAnim.setValue(0);
     await refreshHistory(true);
+    console.log('✅ Manual refresh completed');
     // Start fade-in after data is loaded
     Animated.timing(fadeAnim, {
       toValue: 1,
@@ -83,6 +85,7 @@ export default function HistoryScreen() {
 
   const getDominantMood = useCallback((entries: MoodEntry[]): MoodType => {
     if (entries.length === 0) {
+      
       return 'happy';
     }
 
@@ -158,56 +161,36 @@ export default function HistoryScreen() {
   ), []);
 
   const renderContent = () => {
-    if (loading && !moodHistory.length) {
-      console.log('📱 Rendering loading state');
-      return (
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#3B82F6" />
-        </View>
-      );
-    }
+    console.log('🎨 Rendering content:', {
+      hasError: !!error,
+      isLoading: loading,
+      moodHistoryLength: moodHistory.length
+    });
 
     if (error) {
-      console.log('❌ Rendering error state:', error);
       return (
-        <View style={styles.centerContainer}>
+        <View style={styles.centerContent}>
           <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity 
-            style={styles.retryButton}
-            onPress={handleRefresh}
-          >
-            <Text style={styles.retryText}>Try Again</Text>
+          <TouchableOpacity onPress={() => refreshHistory(true)} style={styles.retryButton}>
+            <Text style={styles.retryText}>Retry</Text>
           </TouchableOpacity>
         </View>
       );
     }
 
-    const hasFilteredEntries = filteredAndGroupedEntries.length > 0;
-
-    if (!hasFilteredEntries) {
-      console.log('📭 Rendering empty state for:', {
-        totalEntries: moodHistory.length,
-        selectedMood,
-        filteredCount: filteredAndGroupedEntries.length
-      });
-
+    if (loading && !moodHistory.length) {
       return (
-        <View style={styles.centerContainer}>
-          {moodHistory.length === 0 ? (
-            <>
-              <Text style={styles.emptyText}>No mood entries yet</Text>
-              <Text style={styles.emptySubtext}>
-                Your mood history will appear here once you start logging your moods
-              </Text>
-            </>
-          ) : (
-            <>
-              <Text style={styles.emptyText}>No entries found</Text>
-              <Text style={styles.emptySubtext}>
-                Try selecting a different mood filter
-              </Text>
-            </>
-          )}
+        <View style={styles.centerContent}>
+          <ActivityIndicator size="large" color="#6366F1" />
+        </View>
+      );
+    }
+
+    if (!moodHistory.length) {
+      return (
+        <View style={styles.centerContent}>
+          <Text style={styles.emptyText}>No mood entries yet</Text>
+          <Text style={styles.emptySubtext}>Your mood history will appear here</Text>
         </View>
       );
     }
@@ -251,7 +234,7 @@ export default function HistoryScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#fff',
   },
   listContainer: {
     flex: 1,
@@ -260,11 +243,11 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   section: {
-    marginTop: 16,
+    marginTop: 20,
   },
   sectionHeader: {
-    paddingHorizontal: 16,
-    marginBottom: 8,
+    paddingHorizontal: 20,
+    marginBottom: 10,
   },
   sectionTitle: {
     fontSize: 20,
@@ -276,7 +259,7 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     marginTop: 2,
   },
-  centerContainer: {
+  centerContent: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
@@ -285,26 +268,23 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#374151',
-    textAlign: 'center',
+    color: '#4B5563',
+    marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
     color: '#6B7280',
     textAlign: 'center',
-    marginTop: 8,
-    maxWidth: '80%',
   },
   errorText: {
     fontSize: 16,
     color: '#EF4444',
-    textAlign: 'center',
     marginBottom: 12,
   },
   retryButton: {
-    backgroundColor: '#3B82F6',
     paddingHorizontal: 16,
     paddingVertical: 8,
+    backgroundColor: '#6366F1',
     borderRadius: 8,
   },
   retryText: {
