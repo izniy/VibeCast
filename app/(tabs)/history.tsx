@@ -220,10 +220,12 @@ export default function HistoryScreen() {
 
   return (
     <View style={styles.container}>
-      <MoodFilterChips
-        selectedMood={selectedMood}
-        onSelectMood={setSelectedMood}
-      />
+      <View style={styles.filterContainer}>
+        <MoodFilterChips
+          selectedMood={selectedMood}
+          onSelectMood={setSelectedMood}
+        />
+      </View>
       <Animated.View style={[styles.listContainer, { opacity: fadeAnim }]}>
         {renderContent()}
       </Animated.View>
@@ -236,6 +238,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
+  filterContainer: {
+    marginBottom: 8,
+  },
   listContainer: {
     flex: 1,
   },
@@ -243,7 +248,7 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   section: {
-    marginTop: 20,
+    marginTop: 8,
   },
   sectionHeader: {
     paddingHorizontal: 20,

@@ -57,7 +57,8 @@ export function MoodFilterChips({ selectedMood, onSelectMood }: MoodFilterChipsP
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingTop: 4,
+    paddingBottom: 2,
     gap: 8,
   },
   chip: {
