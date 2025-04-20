@@ -1,131 +1,102 @@
-import { View, Text, StyleSheet, TouchableOpacity, Image, Animated } from 'react-native';
-import { useState, useEffect, useRef } from 'react';
+import React from 'react';
+import { View, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { useState } from 'react';
 import { useRouter } from 'expo-router';
-import { useAuth } from '../providers/AuthProvider';
-import { supabase } from '@/lib/supabaseClient';
-import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuth } from '@/providers/AuthProvider';
+import { supabase } from '@/lib/supabase';
+import { Text } from 'react-native-paper';
+import MoodEntryModal from '@/components/mood/MoodEntryModal';
+import { useColorScheme } from 'nativewind';
+import { useRecommendations } from '@/providers/RecommendationsProvider';
+import type { MoodType } from '@/types/mood';
+import AppHeader from '@/components/common/AppHeader';
 
 const MOODS = [
-  { emoji: '😊', label: 'Happy', color: '#34D399' },
-  { emoji: '😌', label: 'Calm', color: '#60A5FA' },
-  { emoji: '😐', label: 'Neutral', color: '#9CA3AF' },
-  { emoji: '😔', label: 'Sad', color: '#818CF8' },
-  { emoji: '😤', label: 'Angry', color: '#F87171' },
+  { emoji: '😊', label: 'happy', color: '#34D399' },
+  { emoji: '😔', label: 'sad', color: '#818CF8' },
+  { emoji: '⚡️', label: 'energetic', color: '#F59E0B' },
+  { emoji: '😌', label: 'relaxed', color: '#60A5FA' },
+  { emoji: '🎯', label: 'focused', color: '#8B5CF6' },
+  { emoji: '💝', label: 'romantic', color: '#EC4899' },
+  { emoji: '😠', label: 'angry', color: '#EF4444' },
 ];
-
-const TOOLTIP_KEY = 'hasShownFabTooltip';
-const TOOLTIP_DURATION = 3000; // 3 seconds
 
 export default function HomeScreen() {
   const { user } = useAuth();
   const router = useRouter();
-  const [selectedMood, setSelectedMood] = useState<string | null>(null);
-  const [entry, setEntry] = useState('');
-  const [showTooltip, setShowTooltip] = useState(false);
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(0)).current;
-  const tooltipAnim = useRef(new Animated.Value(0)).current;
+  const [selectedMood, setSelectedMood] = useState<MoodType | null>(null);
+  const [showModal, setShowModal] = useState(false);
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  const { fetchRecommendations } = useRecommendations();
 
-  useEffect(() => {
-    // Animate FAB entrance
-    Animated.parallel([
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        tension: 50,
-        friction: 7,
-        useNativeDriver: true,
-      }),
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-    ]).start();
+  const handleMoodSelect = (mood: MoodType) => {
+    setSelectedMood(mood);
+    setShowModal(true);
+  };
 
-    // Check if tooltip should be shown
-    checkTooltip();
-  }, []);
+  const handleSaveMood = async (journalEntry: string) => {
+    if (!selectedMood || !user) return;
 
-  const checkTooltip = async () => {
     try {
-      const hasShown = await AsyncStorage.getItem(TOOLTIP_KEY);
-      if (!hasShown) {
-        setShowTooltip(true);
-        // Animate tooltip entrance
-        Animated.timing(tooltipAnim, {
-          toValue: 1,
-          duration: 200,
-          useNativeDriver: true,
-        }).start();
-
-        // Auto-hide tooltip after duration
-        setTimeout(() => {
-          hideTooltip();
-        }, TOOLTIP_DURATION);
-
-        // Mark tooltip as shown
-        await AsyncStorage.setItem(TOOLTIP_KEY, 'true');
-      }
-    } catch (error) {
-      console.error('Error checking tooltip:', error);
-    }
-  };
-
-  const hideTooltip = () => {
-    Animated.timing(tooltipAnim, {
-      toValue: 0,
-      duration: 200,
-      useNativeDriver: true,
-    }).start(() => setShowTooltip(false));
-  };
-
-  const handleLogMood = () => {
-    setShowTooltip(false);
-    router.push('/mood' as any);
-  };
-
-  const saveMood = async (mood: string) => {
-    try {
-      setSelectedMood(mood);
-      const { error } = await supabase.from('moods').insert({
-        user_id: user?.id,
-        mood: mood,
-        entry: '',
+      console.log('Saving mood entry:', {
+        user_id: user.id,
+        mood: selectedMood,
+        journal_entry: journalEntry,
       });
 
-      if (error) throw error;
+      const { error, data } = await supabase.from('mood_entries').insert({
+        user_id: user.id,
+        mood: selectedMood,
+        journal_entry: journalEntry,
+      }).select();
+
+      if (error) {
+        console.error('Error saving mood entry:', error);
+        throw error;
+      }
+
+      console.log('Successfully saved mood entry:', data);
+      
+      // Fetch new recommendations based on the mood
+      await fetchRecommendations(selectedMood);
+      
+      // Close modal after successful save
+      setShowModal(false);
+      setSelectedMood(null);
+      
+      // Navigate to recommendations
+      router.push('/(tabs)/recommendations');
     } catch (error) {
       console.error('Error saving mood:', error);
     }
   };
 
   return (
-    <View style={styles.container}>
+    <View className="flex-1 bg-white dark:bg-gray-900">
       <Image
         source={{ uri: 'https://images.unsplash.com/photo-1517021897933-0e0319cfbc28?q=80&w=2070&auto=format&fit=crop' }}
         style={styles.backgroundImage}
       />
       <View style={styles.overlay} />
-      
+      <AppHeader />
       <View style={styles.content}>
-        <Text style={styles.greeting}>How are you feeling today?</Text>
+        <Text className={`text-3xl font-bold text-white text-center mb-10 ${
+          isDark ? 'text-shadow-lg' : 'text-shadow-md'
+        }`}>
+          How are you feeling today?
+        </Text>
         
         <View style={styles.moodGrid}>
           {MOODS.map((mood) => (
             <TouchableOpacity
               key={mood.label}
-              style={[
-                styles.moodButton,
-                selectedMood === mood.label && { backgroundColor: mood.color + '33' },
-              ]}
-              onPress={() => saveMood(mood.label)}
+              className={`bg-white/90 dark:bg-gray-800/90 rounded-2xl p-5 items-center w-[28%] aspect-square justify-center
+                ${selectedMood === mood.label ? 'border-2 border-indigo-500' : ''}`}
+              onPress={() => handleMoodSelect(mood.label as MoodType)}
             >
               <Text style={styles.moodEmoji}>{mood.emoji}</Text>
-              <Text style={[
-                styles.moodLabel,
-                selectedMood === mood.label && { color: mood.color },
-              ]}>
+              <Text className={`text-sm font-medium capitalize ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                 {mood.label}
               </Text>
             </TouchableOpacity>
@@ -133,50 +104,31 @@ export default function HomeScreen() {
         </View>
 
         {!user && (
-          <View style={styles.loginPrompt}>
-            <Text style={styles.loginText}>Sign in to track your moods</Text>
+          <View className="absolute bottom-10 left-5 right-5 bg-white/90 dark:bg-gray-800/90 rounded-2xl p-5 items-center">
+            <Text className={`text-base ${isDark ? 'text-gray-300' : 'text-gray-700'} mb-3`}>
+              Sign in to track your moods
+            </Text>
             <TouchableOpacity
-              style={styles.loginButton}
-              onPress={() => router.push('/login')}
+              className="bg-indigo-500 px-6 py-3 rounded-lg"
+              onPress={() => router.push('/login' as any)}
             >
-              <Text style={styles.loginButtonText}>Login</Text>
+              <Text className="text-white font-semibold text-base">
+                Login
+              </Text>
             </TouchableOpacity>
           </View>
         )}
       </View>
 
-      <Animated.View style={[
-        styles.fab,
-        {
-          opacity: fadeAnim,
-          transform: [
-            { scale: scaleAnim },
-          ],
-        },
-      ]}>
-        {showTooltip && (
-          <Animated.View style={[
-            styles.tooltip,
-            {
-              opacity: tooltipAnim,
-              transform: [
-                { translateY: tooltipAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [10, 0],
-                })},
-              ],
-            },
-          ]}>
-            <Text style={styles.tooltipText}>Tap to log your mood</Text>
-          </Animated.View>
-        )}
-        <TouchableOpacity
-          style={styles.fabButton}
-          onPress={handleLogMood}
-        >
-          <Ionicons name="add" size={30} color="white" />
-        </TouchableOpacity>
-      </Animated.View>
+      <MoodEntryModal
+        visible={showModal}
+        selectedMood={selectedMood}
+        onClose={() => {
+          setShowModal(false);
+          setSelectedMood(null);
+        }}
+        onSave={handleSaveMood}
+      />
     </View>
   );
 }
@@ -202,16 +154,6 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingTop: 60,
   },
-  greeting: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: 'white',
-    textAlign: 'center',
-    marginBottom: 40,
-    textShadowColor: 'rgba(0,0,0,0.3)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
-  },
   moodGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -219,96 +161,8 @@ const styles = StyleSheet.create({
     gap: 16,
     marginTop: 20,
   },
-  moodButton: {
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    borderRadius: 16,
-    padding: 20,
-    alignItems: 'center',
-    width: '28%',
-    aspectRatio: 1,
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
   moodEmoji: {
     fontSize: 32,
     marginBottom: 8,
-  },
-  moodLabel: {
-    fontSize: 14,
-    color: '#4B5563',
-    fontWeight: '500',
-  },
-  loginPrompt: {
-    position: 'absolute',
-    bottom: 40,
-    left: 20,
-    right: 20,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    borderRadius: 16,
-    padding: 20,
-    alignItems: 'center',
-  },
-  loginText: {
-    fontSize: 16,
-    color: '#4B5563',
-    marginBottom: 12,
-  },
-  loginButton: {
-    backgroundColor: '#6366F1',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  loginButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  fab: {
-    position: 'absolute',
-    bottom: 90,
-    right: 20,
-    alignItems: 'center',
-  },
-  fabButton: {
-    backgroundColor: '#6366F1',
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  tooltip: {
-    position: 'absolute',
-    bottom: 70,
-    backgroundColor: '#1F2937',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  tooltipText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '500',
   },
 });

@@ -10,14 +10,14 @@ import {
 } from 'react-native';
 import { Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
-import { useAuth } from '../providers/AuthProvider';
+import { useAuth } from '@/providers/AuthProvider';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const { signIn, error, isLoading, clearError } = useAuth();
+  const { signIn, error, loading, clearError } = useAuth();
   const router = useRouter();
 
   const handleLogin = async () => {
@@ -56,7 +56,7 @@ export default function LoginScreen() {
               onChangeText={setEmail}
               autoCapitalize="none"
               keyboardType="email-address"
-              editable={!isLoading}
+              editable={!loading}
             />
           </View>
 
@@ -67,7 +67,7 @@ export default function LoginScreen() {
               value={password}
               onChangeText={setPassword}
               secureTextEntry={!showPassword}
-              editable={!isLoading}
+              editable={!loading}
             />
             <TouchableOpacity
               style={styles.eyeIcon}
@@ -82,19 +82,19 @@ export default function LoginScreen() {
           </View>
 
           <TouchableOpacity
-            style={[styles.button, isLoading && styles.buttonDisabled]}
+            style={[styles.button, loading && styles.buttonDisabled]}
             onPress={handleLogin}
-            disabled={isLoading}
+            disabled={loading}
           >
             <Text style={styles.buttonText}>
-              {isLoading ? 'Signing in...' : 'Sign In'}
+              {loading ? 'Signing in...' : 'Sign In'}
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.linkButton}
             onPress={() => router.push('/signup' as any)}
-            disabled={isLoading}
+            disabled={loading}
           >
             <Text style={styles.linkText}>
               Don't have an account? Sign up

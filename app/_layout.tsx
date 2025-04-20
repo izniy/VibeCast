@@ -1,48 +1,28 @@
+import { Buffer } from 'buffer';
+global.Buffer = Buffer;
+
 import React, { useEffect } from 'react';
-import { Redirect, Stack } from 'expo-router';
+import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
-import { AuthProvider, useAuth } from './providers/AuthProvider';
+import { AuthProvider } from '@/providers/AuthProvider';
+import { RecommendationsProvider } from '@/providers/RecommendationsProvider';
 import { useColorScheme } from 'nativewind';
-
-function RootLayoutNav() {
-  const { user, isLoading } = useAuth();
-  const { colorScheme } = useColorScheme();
-
-  // Let the AuthProvider handle the loading state
-  if (isLoading) {
-    return null;
-  }
-
-  // If no user is authenticated, redirect to the auth stack
-  if (!user) {
-    return <Redirect href="/login" />;
-  }
-
-  return (
-    <>
-      <Stack 
-        screenOptions={{ 
-          headerShown: false,
-          contentStyle: {
-            backgroundColor: colorScheme === 'dark' ? '#111827' : '#F9FAFB'
-          }
-        }}
-      >
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" options={{ title: 'Oops!' }} />
-      </Stack>
-      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-    </>
-  );
-}
+import { View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { MD3DarkTheme, MD3LightTheme, PaperProvider } from 'react-native-paper';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 export default function RootLayout() {
   useFrameworkReady();
+  const { colorScheme } = useColorScheme();
 
   return (
     <AuthProvider>
-      <RootLayoutNav />
+      <RecommendationsProvider>
+        <Stack />
+        <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+      </RecommendationsProvider>
     </AuthProvider>
   );
 }

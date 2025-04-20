@@ -14,7 +14,13 @@
     "isolatedModules": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@/components/*": ["./components/*"],
+      "@/hooks/*": ["./hooks/*"],
+      "@/lib/*": ["./lib/*"],
+      "@/providers/*": ["./providers/*"],
+      "@/services/*": ["./services/*"],
+      "@/types/*": ["./types/*"]
     }
   },
   "include": [

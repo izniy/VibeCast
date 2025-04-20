@@ -1,13 +1,13 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { View, StyleSheet, FlatList, Alert, ActivityIndicator, Animated } from 'react-native';
+import { View, StyleSheet, FlatList, Alert, ActivityIndicator, Animated, TouchableOpacity } from 'react-native';
 import { Text } from 'react-native-paper';
 import { format, isToday, isYesterday } from 'date-fns';
-import { useMood } from '../hooks/useMood';
-import { useAuth } from '../providers/AuthProvider';
-import type { MoodEntry } from '../services/mood';
-import type { MoodType } from '../types/mood';
-import { MoodEntryCard } from '../components/history/MoodEntryCard';
-import { MoodFilterChips } from '../components/history/MoodFilterChips';
+import { useMood } from '@/hooks/useMood';
+import { useAuth } from '@/providers/AuthProvider';
+import type { MoodType } from '@/types/mood';
+import type { MoodEntry } from '@/services/mood';
+import { MoodEntryCard } from '@/components/history/MoodEntryCard';
+import { MoodFilterChips } from '@/components/history/MoodFilterChips';
 
 interface GroupedMoodEntries {
   title: string;
@@ -32,13 +32,38 @@ export default function HistoryScreen() {
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const [selectedMood, setSelectedMood] = useState<MoodType | 'all'>('all');
 
+  // Add debug logging for component state
+  React.useEffect(() => {
+    console.log('🎯 HistoryScreen state:', {
+      hasUser: !!user,
+      userId: user?.id,
+      moodHistoryLength: moodHistory.length,
+      isLoading: loading,
+      hasError: !!error,
+      selectedMood,
+      timestamp: new Date().toISOString()
+    });
+  }, [user, moodHistory, loading, error, selectedMood]);
+
+  // Add initial fade-in
+  React.useEffect(() => {
+    if (moodHistory.length > 0) {
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [moodHistory.length]);
+
   const handleRefresh = useCallback(async () => {
-    await refreshHistory();
-    // Trigger fade-in animation after refresh
+    console.log('🔄 Manual refresh triggered');
     fadeAnim.setValue(0);
+    await refreshHistory();
+    // Start fade-in after data is loaded
     Animated.timing(fadeAnim, {
       toValue: 1,
-      duration: 500,
+      duration: 800,
       useNativeDriver: true,
     }).start();
   }, [refreshHistory, fadeAnim]);
@@ -135,6 +160,7 @@ export default function HistoryScreen() {
   ), []);
 
   if (loading && !moodHistory.length) {
+    console.log('📱 Rendering loading state');
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color="#3B82F6" />
@@ -143,14 +169,22 @@ export default function HistoryScreen() {
   }
 
   if (error) {
+    console.log('❌ Rendering error state:', error);
     return (
       <View style={styles.centerContainer}>
         <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity 
+          style={styles.retryButton}
+          onPress={handleRefresh}
+        >
+          <Text style={styles.retryText}>Try Again</Text>
+        </TouchableOpacity>
       </View>
     );
   }
 
   if (!moodHistory.length) {
+    console.log('📭 Rendering empty state');
     return (
       <View style={styles.centerContainer}>
         <Text style={styles.emptyText}>No mood entries yet</Text>
@@ -245,9 +279,21 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   errorText: {
-    color: '#EF4444',
     fontSize: 16,
+    color: '#EF4444',
     textAlign: 'center',
+    marginBottom: 16,
+  },
+  retryButton: {
+    backgroundColor: '#3B82F6',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  retryText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '500',
   },
   emptyText: {
     fontSize: 18,

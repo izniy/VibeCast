@@ -31,8 +31,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     favicon: './assets/favicon.png'
   },
   extra: {
-    // Environment variables will be automatically included
-    // because they start with EXPO_PUBLIC_
+    supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
+    supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
+    spotifyClientId: process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_ID,
+    spotifyClientSecret: process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET,
+    tmdbReadAccessToken: process.env.EXPO_PUBLIC_TMDB_READ_ACCESS_TOKEN,
   },
   plugins: [
     'expo-font',

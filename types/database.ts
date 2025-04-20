@@ -1,3 +1,5 @@
+import { MoodType } from './mood';
+
 export type Json =
   | string
   | number
@@ -13,37 +15,30 @@ export interface Database {
         Row: {
           id: string
           user_id: string
-          mood: string
+          mood: MoodType
           journal_entry: string | null
           created_at: string
-          updated_at: string
         }
         Insert: {
           id?: string
           user_id: string
-          mood: string
+          mood: MoodType
           journal_entry?: string | null
           created_at?: string
-          updated_at?: string
         }
         Update: {
           id?: string
           user_id?: string
-          mood?: string
+          mood?: MoodType
           journal_entry?: string | null
           created_at?: string
-          updated_at?: string
         }
       }
     }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      [_ in never]: never
-    }
-    Enums: {
-      [_ in never]: never
-    }
   }
-} 
+}
+
+// Helper type to convert database types to application types
+export type MoodEntryRow = Database['public']['Tables']['mood_entries']['Row'];
+
+export type Tables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Row']

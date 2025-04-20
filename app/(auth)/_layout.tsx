@@ -1,14 +1,14 @@
 import { Stack } from 'expo-router';
-import { useAuth } from '../../app/providers/AuthProvider';
+import { useAuth } from '@/providers/AuthProvider';
 import { View, ActivityIndicator } from 'react-native';
 
 export default function AuthLayout() {
-  const { isLoading } = useAuth();
+  const { loading } = useAuth();
 
-  if (isLoading) {
+  if (loading) {
     return (
-      <View className="flex-1 items-center justify-center">
-        <ActivityIndicator size="large" color="#6366F1" />
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" />
       </View>
     );
   }

@@ -1,19 +1,74 @@
 import React from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
-import { useRecommendations } from '../providers/RecommendationsProvider';
-import { MusicCard } from '../components/recommendations/MusicCard';
-import { MovieCard } from '../components/recommendations/MovieCard';
-import { SkeletonCard } from '../components/recommendations/SkeletonCard';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, RefreshControl } from 'react-native';
+import { useRecommendations } from '@/hooks/useRecommendations';
+import { RecommendationsProvider } from '@/providers/RecommendationsProvider';
+import { MovieCard } from '@/components/recommendations/MovieCard';
+import { AffirmationCard } from '@/components/recommendations/AffirmationCard';
+import { SkeletonCard } from '@/components/recommendations/SkeletonCard';
 import { Ionicons } from '@expo/vector-icons';
+import { useColorScheme } from 'nativewind';
+import { getRotatedAffirmation, getDailyAffirmationIndex } from '@/utils/affirmations';
 
 export default function RecommendationsScreen() {
   const { recommendations, loading, error, fetchRecommendations } = useRecommendations();
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === 'dark';
 
   const handleRetry = () => {
     if (recommendations?.lastMood) {
       fetchRecommendations(recommendations.lastMood);
     }
   };
+
+  const renderSkeletons = (type: 'affirmation' | 'movie') => (
+    <ScrollView 
+      horizontal={type === 'movie'}
+      showsHorizontalScrollIndicator={false} 
+      style={styles.section}
+      contentContainerStyle={styles.sectionContent}
+    >
+      {[...Array(type === 'movie' ? 5 : 1)].map((_, index) => (
+        <SkeletonCard key={index} type={type} />
+      ))}
+    </ScrollView>
+  );
+
+  const renderSection = (
+    title: string,
+    icon: keyof typeof Ionicons.glyphMap,
+    description: string | undefined,
+    items: any[],
+    renderItem: (item: any) => JSX.Element,
+    type: 'movie'
+  ) => (
+    <>
+      <View style={styles.sectionHeader}>
+        <Ionicons name={icon} size={24} color={isDark ? '#E5E7EB' : '#1F2937'} />
+        <Text style={[styles.title, isDark && { color: '#E5E7EB' }]}>{title}</Text>
+      </View>
+      
+      {!loading && description && (
+        <Text style={styles.description}>{description}</Text>
+      )}
+      
+      {loading ? (
+        renderSkeletons(type)
+      ) : (
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false} 
+          style={styles.section}
+          contentContainerStyle={styles.sectionContent}
+        >
+          {items.length === 0 ? (
+            <Text style={styles.emptyText}>No {title.toLowerCase()} available</Text>
+          ) : (
+            items.map(renderItem)
+          )}
+        </ScrollView>
+      )}
+    </>
+  );
 
   if (error) {
     return (
@@ -31,114 +86,138 @@ export default function RecommendationsScreen() {
 
   if (!recommendations && !loading) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.emptyText}>Log your mood to get personalized recommendations!</Text>
+      <View style={[styles.container, styles.emptyContainer]}>
+        <View style={styles.emptyContent}>
+          <Ionicons 
+            name="heart" 
+            size={48} 
+            color={isDark ? '#9CA3AF' : '#6B7280'} 
+            style={styles.emptyIcon} 
+          />
+          <Text style={[styles.emptyText, isDark && { color: '#9CA3AF' }]}>
+            Log your mood to get personalized recommendations!
+          </Text>
+        </View>
       </View>
     );
   }
 
-  const renderSkeletons = (type: 'music' | 'movie') => (
-    <ScrollView 
-      horizontal 
-      showsHorizontalScrollIndicator={false} 
-      style={styles.section}
-      contentContainerStyle={styles.sectionContent}
-    >
-      {[...Array(5)].map((_, index) => (
-        <SkeletonCard key={index} type={type} />
-      ))}
-    </ScrollView>
-  );
-
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.sectionHeader}>
-        <Ionicons name="musical-notes" size={24} color="#1F2937" />
-        <Text style={styles.title}>Music for Your Mood</Text>
-      </View>
-      
-      {!loading && recommendations?.musicDescription && (
-        <Text style={styles.description}>{recommendations.musicDescription}</Text>
-      )}
-      
-      {loading ? (
-        renderSkeletons('music')
-      ) : (
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false} 
-          style={styles.section}
-          contentContainerStyle={styles.sectionContent}
-        >
-          {recommendations?.music.length === 0 ? (
-            <Text style={styles.emptyText}>No music recommendations available</Text>
-          ) : (
-            recommendations?.music.map((track) => (
-              <MusicCard key={track.id} song={track} />
-            ))
-          )}
-        </ScrollView>
-      )}
+    <View style={styles.container}>
+      <ScrollView 
+        style={[styles.scrollView, isDark && { backgroundColor: '#1F2937' }]}
+        refreshControl={
+          <RefreshControl
+            refreshing={loading}
+            onRefresh={handleRetry}
+            tintColor={isDark ? 'white' : 'black'}
+          />
+        }
+      >
+        {recommendations?.lastMood && (
+          <>
+            <Text style={[styles.description, { fontWeight: 'bold', marginTop: 16 }]}>
+              Based on your mood: {recommendations.lastMood}
+            </Text>
 
-      <View style={styles.sectionHeader}>
-        <Ionicons name="film" size={24} color="#1F2937" />
-        <Text style={styles.title}>Movies for Your Mood</Text>
-      </View>
+            {/* Affirmation Section */}
+            <View style={[styles.sectionHeader, { marginTop: 24 }]}>
+              <Ionicons name="sparkles" size={24} color={isDark ? '#E5E7EB' : '#1F2937'} />
+              <Text style={[styles.title, isDark && { color: '#E5E7EB' }]}>
+                Your Daily Affirmation
+              </Text>
+            </View>
+            
+            <View style={styles.affirmationContainer}>
+              {loading ? (
+                renderSkeletons('affirmation')
+              ) : (
+                <AffirmationCard 
+                  mood={recommendations.lastMood} 
+                  affirmation={getRotatedAffirmation(recommendations.lastMood)} 
+                />
+              )}
+            </View>
 
-      {!loading && recommendations?.movieDescription && (
-        <Text style={styles.description}>{recommendations.movieDescription}</Text>
-      )}
+            <View 
+              style={[
+                styles.divider,
+                { backgroundColor: isDark ? '#374151' : '#E5E7EB' }
+              ]} 
+            />
+          </>
+        )}
 
-      {loading ? (
-        renderSkeletons('movie')
-      ) : (
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false} 
-          style={styles.section}
-          contentContainerStyle={styles.sectionContent}
-        >
-          {recommendations?.movies.length === 0 ? (
-            <Text style={styles.emptyText}>No movie recommendations available</Text>
-          ) : (
-            recommendations?.movies.map((movie) => (
-              <MovieCard key={movie.id} movie={movie} />
-            ))
-          )}
-        </ScrollView>
-      )}
-    </ScrollView>
+        {/* Movies Section */}
+        {renderSection(
+          'Movies for Your Mood',
+          'film',
+          recommendations?.movieDescription,
+          recommendations?.movies || [],
+          (movie) => <MovieCard key={movie.id} movie={movie} />,
+          'movie'
+        )}
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F3F4F6',
-    paddingTop: 20,
+    backgroundColor: '#fff',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: 16,
+  },
+  section: {
+    marginTop: 12,
+  },
+  sectionContent: {
+    paddingHorizontal: 16,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginHorizontal: 20,
-    marginBottom: 16,
-    gap: 8,
+    paddingHorizontal: 16,
+    marginTop: 16,
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: 20,
+    fontWeight: '600',
+    marginLeft: 8,
     color: '#1F2937',
   },
-  section: {
-    marginBottom: 24,
+  description: {
+    fontSize: 16,
+    color: '#6B7280',
+    marginTop: 8,
+    paddingHorizontal: 16,
   },
-  sectionContent: {
-    paddingHorizontal: 20,
+  emptyContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyContent: {
+    alignItems: 'center',
+    padding: 20,
+  },
+  emptyIcon: {
+    marginBottom: 16,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#6B7280',
+    textAlign: 'center',
+    maxWidth: '80%',
   },
   errorContainer: {
     flex: 1,
-    alignItems: 'center',
     justifyContent: 'center',
+    alignItems: 'center',
     padding: 20,
   },
   error: {
@@ -153,25 +232,19 @@ const styles = StyleSheet.create({
     backgroundColor: '#3B82F6',
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 20,
-    gap: 8,
+    borderRadius: 8,
   },
   retryText: {
     color: 'white',
+    marginLeft: 8,
     fontSize: 16,
     fontWeight: '500',
   },
-  emptyText: {
-    fontSize: 16,
-    color: '#6B7280',
-    textAlign: 'center',
-    marginTop: 20,
+  affirmationContainer: {
+    paddingVertical: 16,
   },
-  description: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginHorizontal: 20,
-    marginBottom: 12,
-    fontStyle: 'italic',
+  divider: {
+    height: 1,
+    marginVertical: 24,
   },
 }); 

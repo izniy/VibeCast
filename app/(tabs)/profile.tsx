@@ -10,11 +10,11 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { useAuth } from '../../app/providers/AuthProvider';
+import { useAuth } from '@/providers/AuthProvider';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Text as PaperText } from 'react-native-paper';
-import { supabase } from '../../app/lib/supabase';
+import { supabase } from '@/lib/supabase';
 import { useColorScheme } from 'nativewind';
 import Constants from 'expo-constants';
 
