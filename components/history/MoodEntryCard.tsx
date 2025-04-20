@@ -45,7 +45,7 @@ export function MoodEntryCard({ entry, onDelete }: MoodEntryCardProps) {
         <Text style={styles.timeText}>{formattedTime}</Text>
       </View>
       {entry.journal_entry ? (
-        <Text style={styles.journalText} numberOfLines={2}>
+        <Text style={styles.journalText}>
           {entry.journal_entry}
         </Text>
       ) : null}

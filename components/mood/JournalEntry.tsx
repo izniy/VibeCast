@@ -16,7 +16,7 @@ export const JournalEntry: React.FC<JournalEntryProps> = ({
     <View className="w-full p-4">
       <Text className="text-lg font-semibold mb-2 text-gray-800">Journal Entry</Text>
       <TextInput
-        className="w-full min-h-[120px] p-3 rounded-lg bg-white border border-gray-200"
+        className="w-full min-h-[200px] p-3 rounded-lg bg-white border border-gray-200"
         multiline
         value={value}
         onChangeText={onChangeText}

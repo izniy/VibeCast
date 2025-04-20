@@ -11,18 +11,31 @@ import { useColorScheme } from 'nativewind';
 import { View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { MD3DarkTheme, MD3LightTheme, PaperProvider } from 'react-native-paper';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 
-export default function RootLayout() {
-  useFrameworkReady();
+function AppContent() {
+  const insets = useSafeAreaInsets();
   const { colorScheme } = useColorScheme();
 
   return (
-    <AuthProvider>
-      <RecommendationsProvider>
-        <Stack />
-        <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-      </RecommendationsProvider>
-    </AuthProvider>
+    <>
+      <View style={{ height: insets.top + 16, backgroundColor: '#E0E7FF' }} />
+      <Stack screenOptions={{ headerShown: false }} />
+      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+    </>
+  );
+}
+
+export default function RootLayout() {
+  useFrameworkReady();
+
+  return (
+    <SafeAreaProvider>
+      <AuthProvider>
+        <RecommendationsProvider>
+          <AppContent />
+        </RecommendationsProvider>
+      </AuthProvider>
+    </SafeAreaProvider>
   );
 }

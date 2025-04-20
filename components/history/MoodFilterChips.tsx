@@ -38,13 +38,15 @@ export function MoodFilterChips({ selectedMood, onSelectMood }: MoodFilterChipsP
               isSelected && { backgroundColor: color }
             ]}
           >
-            <Text style={styles.emoji}>{emoji}</Text>
-            <Text style={[
-              styles.label,
-              isSelected && styles.selectedLabel
-            ]}>
-              {mood === 'all' ? 'All' : mood.charAt(0).toUpperCase() + mood.slice(1)}
-            </Text>
+            <View style={styles.chipContent}>
+              <Text style={styles.emoji}>{emoji}</Text>
+              <Text style={[
+                styles.label,
+                isSelected && styles.selectedLabel
+              ]}>
+                {mood === 'all' ? 'All' : mood.charAt(0).toUpperCase() + mood.slice(1)}
+              </Text>
+            </View>
           </TouchableOpacity>
         );
       })}
@@ -55,17 +57,18 @@ export function MoodFilterChips({ selectedMood, onSelectMood }: MoodFilterChipsP
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 8,
+    gap: 8,
   },
   chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
+    minWidth: 80,
+    maxWidth: 110,
+    height: 36,
+    borderRadius: 18,
     borderWidth: 1,
     marginRight: 8,
     backgroundColor: 'white',
+    justifyContent: 'center',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
@@ -78,12 +81,18 @@ const styles = StyleSheet.create({
       },
     }),
   },
+  chipContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+  },
   emoji: {
-    fontSize: 16,
-    marginRight: 6,
+    fontSize: 14,
+    marginRight: 4,
   },
   label: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#374151',
     fontWeight: '500',
   },
