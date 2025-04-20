@@ -12,6 +12,20 @@ const SPOTIFY_TOKEN_KEY = 'spotify_access_token';
 const SPOTIFY_TOKEN_EXPIRY_KEY = 'spotify_token_expiry';
 export const DEFAULT_ALBUM_ART = 'https://example.com/default-album-art.jpg';
 
+// Session-based playlist index for rotation
+const sessionPlaylistIndex: Record<MoodType, number> = {
+  happy: 0,
+  sad: 0,
+  energetic: 0,
+  relaxed: 0,
+  focused: 0,
+  romantic: 0,
+  angry: 0,
+};
+
+// Maximum number of playlists to fetch
+const MAX_PLAYLISTS = 5;
+
 if (!SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET) {
   throw new Error('Missing Spotify credentials. Check your app.config.ts and .env files.');
 }
@@ -82,21 +96,30 @@ export async function getSpotifyRecommendations(mood: MoodType): Promise<{ track
     const token = await getAccessToken();
 
     const searchRes = await fetch(
-      `https://api.spotify.com/v1/search?q=${encodeURIComponent(genre)}&type=playlist&market=US&limit=5`,
+      `https://api.spotify.com/v1/search?q=${encodeURIComponent(genre)}&type=playlist&market=US&limit=${MAX_PLAYLISTS}`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
 
-    const rawText = await searchRes.clone().text();
-    console.log('🔍 Raw search response:', rawText);
-
     const searchData = await searchRes.json();
-    console.log('✅ Parsed search data:', searchData);
+    
+    if (!searchData.playlists?.items?.length) {
+      throw new Error('No playlists found for the genre');
+    }
 
-    const playlist = searchData.playlists?.items?.find((p: any) => p !== null);
+    // Get the current index for this mood and increment it
+    const currentIndex = sessionPlaylistIndex[mood];
+    sessionPlaylistIndex[mood] = (currentIndex + 1) % MAX_PLAYLISTS;
 
-    if (!playlist) throw new Error('No playlist found for the genre');
+    // Select playlist using the rotated index
+    const validPlaylists = searchData.playlists.items.filter((p: any) => p !== null);
+    const playlistIndex = currentIndex % validPlaylists.length;
+    const playlist = validPlaylists[playlistIndex];
+
+    if (!playlist) throw new Error('No valid playlist found for the genre');
 
     console.log('🎶 Selected playlist:', {
+      index: playlistIndex,
+      total: validPlaylists.length,
       name: playlist.name,
       description: playlist.description,
       url: playlist.external_urls?.spotify,
@@ -123,7 +146,7 @@ export async function getSpotifyRecommendations(mood: MoodType): Promise<{ track
         preview_url: track.preview_url,
         external_urls: track.external_urls,
       }));
-      console.log(tracks)
+
     return {
       tracks,
       description: `Curated tracks from Spotify playlist "${playlist.name}" for your ${mood} mood 🎵`,

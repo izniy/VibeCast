@@ -1,10 +1,24 @@
-import { MoodType } from '@/types/mood';
+import { MoodType } from '../types/mood';
 
 const TMDB_TOKEN = process.env.EXPO_PUBLIC_TMDB_READ_ACCESS_TOKEN;
 
 if (!TMDB_TOKEN) {
   throw new Error('Missing TMDB token in environment variables');
 }
+
+// Session-based page index for rotation
+const sessionPageIndex: Record<MoodType, number> = {
+  happy: 1,
+  sad: 1,
+  energetic: 1,
+  relaxed: 1,
+  focused: 1,
+  romantic: 1,
+  angry: 1,
+};
+
+// Maximum page number to rotate through
+const MAX_PAGE = 5;
 
 export interface Movie {
   id: number;
@@ -18,6 +32,7 @@ export interface Movie {
 
 interface TMDBResponse {
   results: Movie[];
+  total_pages: number;
 }
 
 // TMDB Genre IDs:
@@ -67,14 +82,25 @@ export async function getMovieRecommendations(mood: MoodType): Promise<{ movies:
     let url = 'https://api.themoviedb.org/3/discover/movie';
     let description = 'Popular movies you might enjoy';
 
+    // Get the current page for this mood and increment it
+    const currentPage = sessionPageIndex[mood];
+    sessionPageIndex[mood] = (currentPage % MAX_PAGE) + 1;
+
     if (moodMapping) {
       const genres = moodMapping.genres.join(',');
-      url += `?with_genres=${genres}&sort_by=popularity.desc&vote_count.gte=100`;
+      url += `?with_genres=${genres}&sort_by=popularity.desc&vote_count.gte=100&page=${currentPage}`;
       description = moodMapping.description;
     } else {
       // Fallback to popular movies if no mood mapping found
-      url += '?sort_by=popularity.desc&vote_count.gte=200';
+      url += `?sort_by=popularity.desc&vote_count.gte=200&page=${currentPage}`;
     }
+
+    console.log('🎬 Fetching movies:', {
+      mood,
+      page: currentPage,
+      nextPage: sessionPageIndex[mood],
+      genres: moodMapping?.genres,
+    });
 
     const response = await fetch(url, {
       headers: {
@@ -89,12 +115,21 @@ export async function getMovieRecommendations(mood: MoodType): Promise<{ movies:
 
     const data: TMDBResponse = await response.json();
     
+    // If we got an invalid page, reset to page 1
+    if (currentPage > data.total_pages) {
+      sessionPageIndex[mood] = 1;
+      return getMovieRecommendations(mood);
+    }
+    
     return {
       movies: data.results.slice(0, 10), // Return top 10 movies
-      description,
+      description: `${description} (Page ${currentPage})`,
     };
   } catch (error) {
     console.error('Error fetching movie recommendations:', error);
+    // Reset page index on error
+    sessionPageIndex[mood] = 1;
+    
     // Return popular movies as fallback
     const fallbackResponse = await fetch(
       'https://api.themoviedb.org/3/movie/popular?page=1',
