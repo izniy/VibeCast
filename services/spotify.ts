@@ -24,10 +24,17 @@ const sessionPlaylistIndex: Record<MoodType, number> = {
 };
 
 // Maximum number of playlists to fetch
-const MAX_PLAYLISTS = 5;
+const MAX_PLAYLISTS = 10; // Increased for more variety
 
-if (!SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET) {
-  throw new Error('Missing Spotify credentials. Check your app.config.ts and .env files.');
+interface SpotifyPlaylist {
+  id: string;
+  name: string;
+  tracks: {
+    total: number;
+  };
+  owner: {
+    display_name: string;
+  };
 }
 
 export interface SpotifyTrack {
@@ -40,6 +47,10 @@ export interface SpotifyTrack {
   };
   preview_url: string | null;
   external_urls: { spotify: string };
+}
+
+if (!SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET) {
+  throw new Error('Missing Spotify credentials. Check your app.config.ts and .env files.');
 }
 
 const moodToGenres: Record<MoodType, string> = {
@@ -95,8 +106,13 @@ export async function getSpotifyRecommendations(mood: MoodType): Promise<{ track
   try {
     const token = await getAccessToken();
 
+    // Use a broader search term for more diverse playlists
+    const searchQuery = `${genre} mood music playlist`;
+
+    console.log(`🔍 Searching for "${searchQuery}" playlists...`);
+
     const searchRes = await fetch(
-      `https://api.spotify.com/v1/search?q=${encodeURIComponent(genre)}&type=playlist&market=US&limit=${MAX_PLAYLISTS}`,
+      `https://api.spotify.com/v1/search?q=${encodeURIComponent(searchQuery)}&type=playlist&market=US&limit=${MAX_PLAYLISTS}`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
 
@@ -106,24 +122,27 @@ export async function getSpotifyRecommendations(mood: MoodType): Promise<{ track
       throw new Error('No playlists found for the genre');
     }
 
-    // Get the current index for this mood and increment it
-    const currentIndex = sessionPlaylistIndex[mood];
-    sessionPlaylistIndex[mood] = (currentIndex + 1) % MAX_PLAYLISTS;
-
-    // Select playlist using the rotated index
+    // Filter out invalid playlists first
     const validPlaylists = searchData.playlists.items.filter((p: any) => p !== null);
+
+    if (validPlaylists.length === 0) {
+      throw new Error('No valid playlists found for the genre');
+    }
+
+    // Rotate within actual playlist count
+    const currentIndex = sessionPlaylistIndex[mood];
     const playlistIndex = currentIndex % validPlaylists.length;
+    sessionPlaylistIndex[mood] = (currentIndex + 1) % validPlaylists.length;
+
     const playlist = validPlaylists[playlistIndex];
 
-    if (!playlist) throw new Error('No valid playlist found for the genre');
-
-    console.log('🎶 Selected playlist:', {
-      index: playlistIndex,
-      total: validPlaylists.length,
-      name: playlist.name,
-      description: playlist.description,
-      url: playlist.external_urls?.spotify,
-    });
+    console.log(`🎧 Rotating [${mood}] playlist index: ${playlistIndex}/${validPlaylists.length - 1}`);
+    console.log('🧾 Available playlists:', validPlaylists.map((p: SpotifyPlaylist) => ({ 
+      name: p.name,
+      tracks: p.tracks?.total || '?',
+      owner: p.owner?.display_name || 'Unknown'
+    })));
+    console.log(`✨ Selected: "${playlist.name}" by ${playlist.owner?.display_name || 'Unknown'}`);
 
     const tracksRes = await fetch(`https://api.spotify.com/v1/playlists/${playlist.id}/tracks?limit=3`, {
       headers: { Authorization: 'Bearer ' + token },
@@ -147,9 +166,15 @@ export async function getSpotifyRecommendations(mood: MoodType): Promise<{ track
         external_urls: track.external_urls,
       }));
 
+    if (tracks.length === 0) {
+      throw new Error('No valid tracks found in the selected playlist');
+    }
+
+    console.log(`🎵 Found ${tracks.length} tracks from playlist`);
+
     return {
       tracks,
-      description: `Curated tracks from Spotify playlist "${playlist.name}" for your ${mood} mood 🎵`,
+      description: `Curated tracks from "${playlist.name}" for your ${mood} mood 🎵`,
     };
   } catch (error) {
     console.error('Error getting recommendations:', error);
