@@ -2,25 +2,17 @@ import React, { createContext, useContext, useState, useCallback, useRef, useEff
 import type { MoodType } from '../types/mood';
 import type { SpotifyTrack } from '../services/spotify';
 import type { Movie } from '../services/tmdb';
-// import { getSpotifyRecommendations, debugSpotifyCategories, clearSpotifyCache } from '../services/spotify';
+import { getSpotifyRecommendations } from '../services/spotify';
 import { getMovieRecommendations } from '../services/tmdb';
 import { MovieType } from '@/types/movie';
+import { useAuth } from '@/providers/AuthProvider';
+import type { UseRecommendationsReturn, RecommendationsState } from '@/hooks/useRecommendations';
 
-interface RecommendationsState {
-  lastMood: MoodType;
-  movies: MovieType[];
-  movieDescription?: string;
+export const RecommendationsContext = createContext<UseRecommendationsReturn | null>(null);
+
+interface RecommendationsProviderProps {
+  children: React.ReactNode;
 }
-
-interface RecommendationsContextType {
-  recommendations: RecommendationsState | null;
-  loading: boolean;
-  error: string | null;
-  fetchRecommendations: (mood: MoodType) => Promise<void>;
-  clearRecommendations: () => void;
-}
-
-export const RecommendationsContext = createContext<RecommendationsContextType | null>(null);
 
 export function useRecommendations() {
   const context = useContext(RecommendationsContext);
@@ -30,11 +22,8 @@ export function useRecommendations() {
   return context;
 }
 
-interface RecommendationsProviderProps {
-  children: React.ReactNode;
-}
-
 export function RecommendationsProvider({ children }: RecommendationsProviderProps) {
+  const { user } = useAuth();
   const [recommendations, setRecommendations] = useState<RecommendationsState | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,9 +35,23 @@ export function RecommendationsProvider({ children }: RecommendationsProviderPro
     };
   }, []);
 
+  // Clear recommendations when user changes
+  useEffect(() => {
+    if (!user) {
+      setRecommendations(null);
+      setError(null);
+    }
+  }, [user?.id]);
+
   const fetchRecommendations = useCallback(async (mood: MoodType) => {
+    if (!user?.id) {
+      console.log('No user ID available for fetching recommendations');
+      return;
+    }
+
     console.log('\n=== Fetching Recommendations ===');
     console.log('🎭 Mood:', mood);
+    console.log('👤 User:', user.id);
     
     try {
       if (isMounted.current) {
@@ -56,32 +59,41 @@ export function RecommendationsProvider({ children }: RecommendationsProviderPro
         setError(null);
       }
 
-      // Fetch movie recommendations only
-      console.log('🔄 Fetching movies...');
-      const movieData = await getMovieRecommendations(mood);
+      // Fetch both movie and music recommendations in parallel
+      const [movieData, musicData] = await Promise.all([
+        getMovieRecommendations(mood),
+        getSpotifyRecommendations(mood)
+      ]);
 
-      // Log movie results
+      // Log results
       console.log('\n🎬 Movie Results:', {
         moviesCount: movieData.movies.length,
         description: movieData.description,
         sampleMovie: movieData.movies[0]?.title || 'No movies'
       });
 
+      console.log('\n🎵 Music Results:', {
+        tracksCount: musicData.tracks.length,
+        description: musicData.description,
+        sampleTrack: musicData.tracks[0]?.name || 'No tracks'
+      });
+
       if (isMounted.current) {
         // Handle empty recommendations
-        if (!movieData.movies.length) {
+        if (!movieData.movies.length && !musicData.tracks.length) {
           const error = 'No recommendations available for this mood';
           console.error('\n❌ Recommendation Error:', {
             error,
             mood,
-            moviesEmpty: true
+            moviesEmpty: true,
+            musicEmpty: true
           });
           setError(error);
           return;
         }
 
         setRecommendations({
-          movies: movieData.movies.map(movie => ({
+          movies: movieData.movies.map((movie: Movie) => ({
             id: movie.id,
             title: movie.title,
             overview: movie.overview,
@@ -90,13 +102,17 @@ export function RecommendationsProvider({ children }: RecommendationsProviderPro
             vote_average: movie.vote_average,
             genre_ids: movie.genre_ids
           })),
-          movieDescription: `Here are some movies that match your ${mood} mood`,
+          movieDescription: movieData.description,
+          music: musicData.tracks,
+          musicDescription: musicData.description,
           lastMood: mood
         });
 
         console.log('\n✅ Recommendations updated successfully:', {
           movies: movieData.movies.length,
-          mood
+          tracks: musicData.tracks.length,
+          mood,
+          userId: user.id
         });
       }
     } catch (err) {
@@ -104,6 +120,7 @@ export function RecommendationsProvider({ children }: RecommendationsProviderPro
       console.error('\n❌ Error fetching recommendations:', {
         error: errorMessage,
         mood,
+        userId: user.id,
         type: err instanceof Error ? err.constructor.name : typeof err
       });
       
@@ -116,7 +133,7 @@ export function RecommendationsProvider({ children }: RecommendationsProviderPro
       }
       console.log('=== End Recommendations Fetch ===\n');
     }
-  }, []);
+  }, [user?.id]);
 
   const clearRecommendations = useCallback(() => {
     if (isMounted.current) {

@@ -47,19 +47,17 @@ export default function HistoryScreen() {
 
   // Add initial fade-in
   React.useEffect(() => {
-    if (moodHistory.length > 0) {
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 800,
-        useNativeDriver: true,
-      }).start();
-    }
-  }, [moodHistory.length]);
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 800,
+      useNativeDriver: true,
+    }).start();
+  }, [fadeAnim]);
 
   const handleRefresh = useCallback(async () => {
     console.log('🔄 Manual refresh triggered');
     fadeAnim.setValue(0);
-    await refreshHistory();
+    await refreshHistory(true);
     // Start fade-in after data is loaded
     Animated.timing(fadeAnim, {
       toValue: 1,
@@ -159,43 +157,83 @@ export default function HistoryScreen() {
     </View>
   ), []);
 
-  if (loading && !moodHistory.length) {
-    console.log('📱 Rendering loading state');
-    return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#3B82F6" />
-      </View>
-    );
-  }
+  const renderContent = () => {
+    if (loading && !moodHistory.length) {
+      console.log('📱 Rendering loading state');
+      return (
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color="#3B82F6" />
+        </View>
+      );
+    }
 
-  if (error) {
-    console.log('❌ Rendering error state:', error);
-    return (
-      <View style={styles.centerContainer}>
-        <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity 
-          style={styles.retryButton}
-          onPress={handleRefresh}
-        >
-          <Text style={styles.retryText}>Try Again</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
+    if (error) {
+      console.log('❌ Rendering error state:', error);
+      return (
+        <View style={styles.centerContainer}>
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity 
+            style={styles.retryButton}
+            onPress={handleRefresh}
+          >
+            <Text style={styles.retryText}>Try Again</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
 
-  if (!moodHistory.length) {
-    console.log('📭 Rendering empty state');
-    return (
-      <View style={styles.centerContainer}>
-        <Text style={styles.emptyText}>No mood entries yet</Text>
-        <Text style={styles.emptySubtext}>
-          Your mood history will appear here once you start logging your moods
-        </Text>
-      </View>
-    );
-  }
+    const hasFilteredEntries = filteredAndGroupedEntries.length > 0;
 
-  const hasFilteredEntries = filteredAndGroupedEntries.length > 0;
+    if (!hasFilteredEntries) {
+      console.log('📭 Rendering empty state for:', {
+        totalEntries: moodHistory.length,
+        selectedMood,
+        filteredCount: filteredAndGroupedEntries.length
+      });
+
+      return (
+        <View style={styles.centerContainer}>
+          {moodHistory.length === 0 ? (
+            <>
+              <Text style={styles.emptyText}>No mood entries yet</Text>
+              <Text style={styles.emptySubtext}>
+                Your mood history will appear here once you start logging your moods
+              </Text>
+            </>
+          ) : (
+            <>
+              <Text style={styles.emptyText}>No entries found</Text>
+              <Text style={styles.emptySubtext}>
+                Try selecting a different mood filter
+              </Text>
+            </>
+          )}
+        </View>
+      );
+    }
+
+    return (
+      <FlatList
+        data={filteredAndGroupedEntries}
+        renderItem={({ item }) => (
+          <View style={styles.section}>
+            {renderSectionHeader(item)}
+            {item.data.map((entry) => (
+              <MoodEntryCard
+                key={entry.id}
+                entry={entry}
+                onDelete={() => handleDeleteEntry(entry)}
+              />
+            ))}
+          </View>
+        )}
+        keyExtractor={(item) => item.title}
+        refreshing={loading}
+        onRefresh={handleRefresh}
+        contentContainerStyle={styles.listContent}
+      />
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -204,34 +242,7 @@ export default function HistoryScreen() {
         onSelectMood={setSelectedMood}
       />
       <Animated.View style={[styles.listContainer, { opacity: fadeAnim }]}>
-        {hasFilteredEntries ? (
-          <FlatList
-            data={filteredAndGroupedEntries}
-            renderItem={({ item }) => (
-              <View style={styles.section}>
-                {renderSectionHeader(item)}
-                {item.data.map((entry) => (
-                  <MoodEntryCard
-                    key={entry.id}
-                    entry={entry}
-                    onDelete={() => handleDeleteEntry(entry)}
-                  />
-                ))}
-              </View>
-            )}
-            keyExtractor={(item) => item.title}
-            refreshing={loading}
-            onRefresh={handleRefresh}
-            contentContainerStyle={styles.listContent}
-          />
-        ) : (
-          <View style={styles.centerContainer}>
-            <Text style={styles.emptyText}>No entries found</Text>
-            <Text style={styles.emptySubtext}>
-              Try selecting a different mood filter
-            </Text>
-          </View>
-        )}
+        {renderContent()}
       </Animated.View>
     </View>
   );
@@ -240,7 +251,7 @@ export default function HistoryScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#F9FAFB',
   },
   listContainer: {
     flex: 1,
@@ -248,41 +259,47 @@ const styles = StyleSheet.create({
   listContent: {
     paddingBottom: 20,
   },
-  centerContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-    backgroundColor: '#F3F4F6',
-  },
   section: {
-    marginBottom: 24,
+    marginTop: 16,
   },
   sectionHeader: {
-    backgroundColor: '#E5E7EB',
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginBottom: 12,
-    borderRadius: 8,
-    marginHorizontal: 16,
+    marginBottom: 8,
   },
   sectionTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#374151',
-    letterSpacing: 0.5,
-    marginBottom: 4,
+    color: '#1F2937',
   },
   sectionDescription: {
     fontSize: 14,
     color: '#6B7280',
-    fontStyle: 'italic',
+    marginTop: 2,
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#374151',
+    textAlign: 'center',
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginTop: 8,
+    maxWidth: '80%',
   },
   errorText: {
     fontSize: 16,
     color: '#EF4444',
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   retryButton: {
     backgroundColor: '#3B82F6',
@@ -291,19 +308,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   retryText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: '500',
-    color: '#374151',
-    marginBottom: 8,
-  },
-  emptySubtext: {
+    color: '#FFFFFF',
     fontSize: 14,
-    color: '#6B7280',
-    textAlign: 'center',
+    fontWeight: '500',
   },
 });

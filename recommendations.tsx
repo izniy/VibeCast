@@ -1,13 +1,15 @@
 import React from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, RefreshControl } from 'react-native';
 import { useRecommendations } from '@/hooks/useRecommendations';
+import { RecommendationsProvider } from '@/providers/RecommendationsProvider';
 import { MovieCard } from '@/components/recommendations/MovieCard';
 import { AffirmationCard } from '@/components/recommendations/AffirmationCard';
-import { MusicCard } from '@/components/recommendations/MusicCard';
 import { SkeletonCard } from '@/components/recommendations/SkeletonCard';
 import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from 'nativewind';
-import { getRotatedAffirmation } from '@/utils/affirmations';
+import { getRotatedAffirmation, getDailyAffirmationIndex } from '@/utils/affirmations';
+import { MusicCard } from '@/components/recommendations/MusicCard';
+import { DEFAULT_ALBUM_ART } from '@/services/spotify';
 
 export default function RecommendationsScreen() {
   const { recommendations, loading, error, fetchRecommendations } = useRecommendations();
@@ -20,18 +22,55 @@ export default function RecommendationsScreen() {
     }
   };
 
-  const renderSkeletons = (type: 'affirmation' | 'movie' | 'music') => (
+  const renderSkeletons = (type: 'affirmation' | 'movie') => (
     <ScrollView 
       horizontal={type === 'movie'}
       showsHorizontalScrollIndicator={false} 
       style={styles.section}
       contentContainerStyle={styles.sectionContent}
     >
-      {[...Array(type === 'movie' ? 5 : type === 'music' ? 3 : 1)].map((_, index) => (
+      {[...Array(type === 'movie' ? 5 : 1)].map((_, index) => (
         <SkeletonCard key={index} type={type} />
       ))}
     </ScrollView>
   );
+
+  // const renderSection = (
+  //   title: string,
+  //   icon: keyof typeof Ionicons.glyphMap,
+  //   description: string | undefined,
+  //   items: any[],
+  //   renderItem: (item: any) => JSX.Element,
+  //   type: 'movie'
+  // ) => (
+  //   <>
+  //     <View style={styles.sectionHeader}>
+  //       <Ionicons name={icon} size={24} color={isDark ? '#E5E7EB' : '#1F2937'} />
+  //       <Text style={[styles.title, isDark && { color: '#E5E7EB' }]}>{title}</Text>
+  //     </View>
+      
+  //     {!loading && description && (
+  //       <Text style={styles.description}>{description}</Text>
+  //     )}
+      
+  //     {loading ? (
+  //       renderSkeletons(type)
+  //     ) : (
+  //       <ScrollView 
+  //         horizontal 
+  //         showsHorizontalScrollIndicator={false} 
+  //         style={styles.section}
+  //         contentContainerStyle={styles.sectionContent}
+  //       >
+  //         {items.length === 0 ? (
+  //           <Text style={styles.emptyText}>No {title.toLowerCase()} available</Text>
+  //         ) : (
+  //           items.map(renderItem)
+  //         )}
+  //       </ScrollView>
+  //     )}
+  //   </>
+  // );
 
   const renderSection = (
     title: string,
@@ -48,13 +87,11 @@ export default function RecommendationsScreen() {
       </View>
       
       {!loading && description && (
-        <Text style={[styles.description, isDark && { color: '#9CA3AF' }]}>
-          {description}
-        </Text>
+        <Text style={styles.description}>{description}</Text>
       )}
       
       {loading ? (
-        renderSkeletons(layout === 'horizontal' ? 'movie' : layout === 'vertical' ? 'music' : 'affirmation')
+        renderSkeletons(layout === 'horizontal' ? 'movie' : 'affirmation')
       ) : layout === 'horizontal' ? (
         <ScrollView 
           horizontal 
@@ -63,9 +100,7 @@ export default function RecommendationsScreen() {
           contentContainerStyle={styles.sectionContent}
         >
           {items.length === 0 ? (
-            <Text style={[styles.emptyText, isDark && { color: '#9CA3AF' }]}>
-              No {title.toLowerCase()} available
-            </Text>
+            <Text style={styles.emptyText}>No {title.toLowerCase()} available</Text>
           ) : (
             items.map(renderItem)
           )}
@@ -73,9 +108,7 @@ export default function RecommendationsScreen() {
       ) : (
         <View style={[styles.section, styles.sectionContent]}>
           {items.length === 0 ? (
-            <Text style={[styles.emptyText, isDark && { color: '#9CA3AF' }]}>
-              No {title.toLowerCase()} available
-            </Text>
+            <Text style={styles.emptyText}>No {title.toLowerCase()} available</Text>
           ) : (
             items.map(renderItem)
           )}
@@ -83,16 +116,14 @@ export default function RecommendationsScreen() {
       )}
     </>
   );
+  
 
   if (error) {
     return (
-      <View style={[styles.container, isDark && { backgroundColor: '#1F2937' }]}>
+      <View style={styles.container}>
         <View style={styles.errorContainer}>
-          <Text style={[styles.error, isDark && { color: '#EF4444' }]}>{error}</Text>
-          <TouchableOpacity 
-            style={[styles.retryButton, isDark && { backgroundColor: '#3B82F6' }]} 
-            onPress={handleRetry}
-          >
+          <Text style={styles.error}>{error}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
             <Ionicons name="refresh" size={20} color="white" />
             <Text style={styles.retryText}>Try Again</Text>
           </TouchableOpacity>
@@ -103,7 +134,7 @@ export default function RecommendationsScreen() {
 
   if (!recommendations && !loading) {
     return (
-      <View style={[styles.container, styles.emptyContainer, isDark && { backgroundColor: '#1F2937' }]}>
+      <View style={[styles.container, styles.emptyContainer]}>
         <View style={styles.emptyContent}>
           <Ionicons 
             name="heart" 
@@ -132,11 +163,7 @@ export default function RecommendationsScreen() {
     >
       {recommendations?.lastMood && (
         <>
-          <Text style={[
-            styles.description, 
-            { fontWeight: 'bold', marginTop: 16 },
-            isDark && { color: '#E5E7EB' }
-          ]}>
+          <Text style={[styles.description, { fontWeight: 'bold', marginTop: 16 }]}>
             Based on your mood: {recommendations.lastMood}
           </Text>
 
@@ -165,43 +192,37 @@ export default function RecommendationsScreen() {
               { backgroundColor: isDark ? '#374151' : '#E5E7EB' }
             ]} 
           />
-
-          {/* Music Section */}
-          {renderSection(
-            'Music for Your Mood',
-            'musical-notes',
-            recommendations.musicDescription,
-            recommendations.music || [],
-            (track) => (
-              <MusicCard
-                key={track.id}
-                title={track.name}
-                artist={track.artists.join(', ')}
-                imageUrl={track.album.images[0]?.url}
-                spotifyUrl={track.external_urls.spotify}
-              />
-            ),
-            'vertical'
-          )}
-
-          <View 
-            style={[
-              styles.divider,
-              { backgroundColor: isDark ? '#374151' : '#E5E7EB' }
-            ]} 
-          />
-
-          {/* Movies Section */}
-          {renderSection(
-            'Movies for Your Mood',
-            'film',
-            recommendations.movieDescription,
-            recommendations.movies || [],
-            (movie) => <MovieCard key={movie.id} movie={movie} />,
-            'horizontal'
-          )}
         </>
       )}
+
+      {/* Movies Section */}
+      {renderSection(
+        'Movies for Your Mood',
+        'film',
+        recommendations?.movieDescription,
+        recommendations?.movies || [],
+        (movie) => <MovieCard key={movie.id} movie={movie} />,
+        'horizontal'
+      )}
+      {/* Music Section */}
+      {renderSection(
+        'Songs for Your Mood',
+        'musical-notes',
+        recommendations?.musicDescription,
+        recommendations?.music || [],
+        (track) => (
+          <MusicCard
+            key={track.id}
+            title={track.name}
+            artist={track.artists.join(', ')}
+            imageUrl={track.album.images[0]?.url ?? DEFAULT_ALBUM_ART}
+            spotifyUrl={track.external_urls.spotify}
+          />
+        ),        
+        'vertical' // still horizontal scroll
+      )}
+
+
     </ScrollView>
   );
 }
@@ -209,10 +230,10 @@ export default function RecommendationsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#fff',
   },
   section: {
-    marginVertical: 8,
+    marginTop: 12,
   },
   sectionContent: {
     paddingHorizontal: 16,
@@ -222,51 +243,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     marginTop: 16,
-    marginBottom: 8,
   },
   title: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '600',
-    color: '#1F2937',
     marginLeft: 8,
+    color: '#1F2937',
   },
   description: {
-    fontSize: 14,
-    color: '#6B7280',
-    paddingHorizontal: 16,
-    marginBottom: 8,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#E5E7EB',
-    marginVertical: 16,
-    marginHorizontal: 16,
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  error: {
     fontSize: 16,
-    color: '#EF4444',
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-  retryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#3B82F6',
+    color: '#6B7280',
+    marginTop: 8,
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    gap: 8,
-  },
-  retryText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '500',
   },
   emptyContainer: {
     justifyContent: 'center',
@@ -285,7 +273,37 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     maxWidth: '80%',
   },
-  affirmationContainer: {
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  error: {
+    fontSize: 16,
+    color: '#EF4444',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  retryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#3B82F6',
     paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  retryText: {
+    color: 'white',
+    marginLeft: 8,
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  affirmationContainer: {
+    paddingVertical: 16,
+  },
+  divider: {
+    height: 1,
+    marginVertical: 24,
   },
 }); 

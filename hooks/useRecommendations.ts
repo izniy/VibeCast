@@ -1,23 +1,26 @@
 import { useContext } from 'react';
 import { RecommendationsContext } from '@/providers/RecommendationsProvider';
-import { useState, useEffect } from 'react';
-import { MoodType } from '@/types/mood';
-import { MovieType } from '@/types/movie';
+import type { MoodType } from '@/types/mood';
+import type { MovieType } from '@/types/movie';
+import type { SpotifyTrack } from '@/services/spotify';
 
-interface RecommendationsState {
+export interface RecommendationsState {
   lastMood: MoodType;
   movies: MovieType[];
   movieDescription?: string;
+  music: SpotifyTrack[];
+  musicDescription?: string;
 }
 
-interface UseRecommendationsReturn {
+export interface UseRecommendationsReturn {
   recommendations: RecommendationsState | null;
   loading: boolean;
   error: string | null;
   fetchRecommendations: (mood: MoodType) => Promise<void>;
+  clearRecommendations: () => void;
 }
 
-export function useRecommendations() {
+export function useRecommendations(): UseRecommendationsReturn {
   const context = useContext(RecommendationsContext);
   if (!context) {
     throw new Error('useRecommendations must be used within a RecommendationsProvider');

@@ -4,7 +4,7 @@ import React from 'react';
 import * as WebBrowser from 'expo-web-browser';
 import Constants from 'expo-constants';
 import * as SecureStore from 'expo-secure-store';
-import type { MoodType } from '@/types/mood';
+import type { MoodType } from '../types/mood';
 
 const SPOTIFY_CLIENT_ID = Constants.expoConfig?.extra?.spotifyClientId;
 const SPOTIFY_CLIENT_SECRET = Constants.expoConfig?.extra?.spotifyClientSecret;

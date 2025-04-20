@@ -1,4 +1,4 @@
-import { MoodType } from '../types/mood';
+import { MoodType } from '@/types/mood';
 
 const TMDB_TOKEN = process.env.EXPO_PUBLIC_TMDB_READ_ACCESS_TOKEN;
 
