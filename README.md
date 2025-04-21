@@ -4,6 +4,7 @@
 
 Whether you're feeling joyful, reflective, focused, or overwhelmed, VibeCast curates a tailored experience just for you.
 
+Link to try: https://vibecast.expo.app
 ---
 
 ## 🌟 What You Can Do with VibeCast
