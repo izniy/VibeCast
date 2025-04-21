@@ -3,7 +3,7 @@ import { ExpoConfig, ConfigContext } from 'expo/config';
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: 'VibeCast',
-  slug: 'mood-tracker',
+  slug: 'VibeCast',
   version: '1.0.0',
   orientation: 'portrait',
   icon: './assets/icon.png',
@@ -13,6 +13,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     resizeMode: 'contain',
     backgroundColor: '#ffffff'
   },
+  
   assetBundlePatterns: [
     '**/*'
   ],
@@ -36,6 +37,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     spotifyClientId: process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_ID,
     spotifyClientSecret: process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET,
     tmdbReadAccessToken: process.env.EXPO_PUBLIC_TMDB_READ_ACCESS_TOKEN,
+    eas: {
+      projectId: "8ad3d7a9-d4b3-44a8-938f-df925dfd1c46"
+    }
   },
   plugins: [
     'expo-font',
