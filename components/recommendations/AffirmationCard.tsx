@@ -17,21 +17,21 @@ export function AffirmationCard({ affirmation, mood }: AffirmationCardProps) {
   const isDark = colorScheme === 'dark';
 
   const gradientColors: Record<MoodType, GradientColors> = {
-    happy: ['#FFD700', '#FFA500'] as const,
-    sad: ['#4169E1', '#1E90FF'] as const,
-    energetic: ['#FF4500', '#FF6347'] as const,
-    relaxed: ['#98FB98', '#90EE90'] as const,
-    focused: ['#9370DB', '#8A2BE2'] as const,
-    romantic: ['#FF69B4', '#FF1493'] as const,
-    angry: ['#DC143C', '#FF0000'] as const,
+    happy: ['#FFE5A3', '#FFD1A3'] as const,
+    sad: ['#A3C8FF', '#89B6FF'] as const,
+    energetic: ['#FFB199', '#FF9B8A'] as const,
+    relaxed: ['#C1F4C1', '#A8EBA8'] as const,
+    focused: ['#D4C1FF', '#C4A7FF'] as const,
+    romantic: ['#FFC1E3', '#FFB3D9'] as const,
+    angry: ['#FFB3B3', '#FFA3A3'] as const,
   };
 
-  const colors: GradientColors = gradientColors[mood] || ['#A9A9A9', '#808080'] as const;
+  const colors: GradientColors = gradientColors[mood] || ['#E5E5E5', '#D4D4D4'] as const;
   
   // Calculate responsive dimensions
-  const containerWidth = Math.min(screenWidth - 32, 600); // Max width of 600, minus margins
-  const minHeight = Math.min(180, screenWidth * 0.4); // Responsive height based on screen width
-  const fontSize = screenWidth < 350 ? 18 : screenWidth < 400 ? 20 : 22;
+  const containerWidth = Math.min(screenWidth - 32, 600);
+  const minHeight = Math.min(180, screenWidth * 0.4);
+  const fontSize = screenWidth < 350 ? 16 : screenWidth < 400 ? 18 : 20;
 
   const styles = StyleSheet.create({
     outerContainer: {
@@ -59,25 +59,25 @@ export function AffirmationCard({ affirmation, mood }: AffirmationCardProps) {
     gradient: {
       flex: 1,
       padding: 24,
-      borderRadius: 16, // Match container borderRadius
+      borderRadius: 16,
       justifyContent: 'center',
       alignItems: 'center',
     },
     text: {
-      color: '#FFFFFF',
+      color: '#4A5568',
       fontSize: fontSize,
       fontWeight: '600',
       textAlign: 'center',
       lineHeight: fontSize * 1.4,
-      textShadowColor: 'rgba(0, 0, 0, 0.3)',
-      textShadowOffset: { width: 1, height: 1 },
-      textShadowRadius: 3,
+      textShadowColor: 'rgba(255, 255, 255, 0.5)',
+      textShadowOffset: { width: 0.5, height: 0.5 },
+      textShadowRadius: 2,
     },
     moodLabel: {
-      color: '#FFFFFF',
-      fontSize: 14,
+      color: '#4A5568',
+      fontSize: 13,
       fontWeight: '500',
-      opacity: 0.85,
+      opacity: 0.9,
       marginTop: 16,
       textTransform: 'capitalize',
       letterSpacing: 0.5,
