@@ -9,6 +9,7 @@ import {
   Modal,
   KeyboardAvoidingView,
   Platform,
+  StyleSheet,
 } from 'react-native';
 import { useAuth } from '@/providers/AuthProvider';
 import { router } from 'expo-router';
@@ -30,6 +31,7 @@ export default function ProfileScreen() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [newName, setNewName] = useState(user?.user_metadata?.full_name || '');
   const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === 'dark';
 
   const handleSignOut = async () => {
     try {
@@ -104,60 +106,71 @@ export default function ProfileScreen() {
   const email = user?.email || '';
 
   return (
-    <>
-      <ScrollView className="flex-1 bg-gray-50 dark:bg-gray-900">
-        <View className="p-6 space-y-4">
-          <View className="space-y-1">
+    <View style={[styles.container, isDark && styles.containerDark]}>
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+      >
+        <View style={[styles.contentWrapper, Platform.OS === 'web' && styles.webContentWrapper]}>
+          <View style={styles.header}>
             <PaperText 
               variant="headlineLarge" 
-              className="text-2xl font-bold text-gray-900 dark:text-white"
+              style={[styles.name, isDark && styles.textLight]}
             >
               {fullName}
             </PaperText>
             <PaperText 
               variant="bodyLarge"
-              className="text-gray-600 dark:text-gray-400"
+              style={[styles.email, isDark && styles.textMuted]}
             >
               {email}
             </PaperText>
           </View>
-        </View>
 
-        {/* Menu Items */}
-        <View className="mt-4">
-          {menuItems.map((item, index) => (
-            <TouchableOpacity
-              key={index}
-              onPress={item.onPress}
-              disabled={isUpdating}
-              className={`flex-row items-center px-6 py-4 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 ${
-                isUpdating ? 'opacity-50' : ''
-              }`}
-            >
-              <Ionicons
-                name={item.icon}
-                size={24}
-                className="text-gray-600 dark:text-gray-400"
-              />
-              <Text className="flex-1 ml-4 text-gray-800 dark:text-white">
-                {item.title}
-              </Text>
-              <Ionicons
-                name="chevron-forward"
-                size={20}
-                className="text-gray-400"
-              />
-            </TouchableOpacity>
-          ))}
-        </View>
+          <View style={styles.menuContainer}>
+            {menuItems.map((item, index) => (
+              <TouchableOpacity
+                key={index}
+                onPress={item.onPress}
+                disabled={isUpdating}
+                style={[
+                  styles.menuItem,
+                  isDark && styles.menuItemDark,
+                  isUpdating && styles.disabled
+                ]}
+              >
+                <View style={styles.menuItemContent}>
+                  <Ionicons
+                    name={item.icon}
+                    size={24}
+                    color={isDark ? '#9CA3AF' : '#6B7280'}
+                    style={styles.menuIcon}
+                  />
+                  <Text style={[
+                    styles.menuText,
+                    isDark && styles.textLight
+                  ]}>
+                    {item.title}
+                  </Text>
+                </View>
+                <Ionicons
+                  name="chevron-forward"
+                  size={20}
+                  color={isDark ? '#9CA3AF' : '#6B7280'}
+                />
+              </TouchableOpacity>
+            ))}
+          </View>
 
-        {/* App Version */}
-        <Text className="text-center text-sm text-gray-500 dark:text-gray-400 mt-6 mb-8">
-          VibeCast v{Constants.expoConfig?.version || '1.0.0'}
-        </Text>
+          <Text style={[
+            styles.version,
+            isDark && styles.textMuted
+          ]}>
+            VibeCast v{Constants.expoConfig?.version || '1.0.0'}
+          </Text>
+        </View>
       </ScrollView>
 
-      {/* Edit Profile Modal */}
       <Modal
         visible={showEditModal}
         animationType="slide"
@@ -166,67 +179,275 @@ export default function ProfileScreen() {
       >
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          className="flex-1 justify-end"
+          style={styles.modalContainer}
         >
-          <View className="bg-white dark:bg-gray-800 rounded-t-3xl">
-            <View className="p-6 space-y-6">
-              <View className="flex-row justify-between items-center">
-                <Text className="text-xl font-semibold text-gray-900 dark:text-white">
-                  Edit Profile
-                </Text>
-                <TouchableOpacity
-                  onPress={() => setShowEditModal(false)}
-                  disabled={isUpdating}
-                >
-                  <Ionicons
-                    name="close"
-                    size={24}
-                    color={colorScheme === 'dark' ? '#9CA3AF' : '#6B7280'}
-                  />
-                </TouchableOpacity>
-              </View>
-
-              <View className="space-y-2">
-                <Text className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Full Name
-                </Text>
-                <TextInput
-                  className="w-full bg-white dark:bg-gray-700 px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white"
-                  placeholder="Enter your full name"
-                  placeholderTextColor={colorScheme === 'dark' ? '#9CA3AF' : '#6B7280'}
-                  value={newName}
-                  onChangeText={setNewName}
-                  autoCapitalize="words"
-                  editable={!isUpdating}
+          <View style={[
+            styles.modalContent,
+            isDark && styles.modalContentDark
+          ]}>
+            <View style={styles.modalHeader}>
+              <Text style={[
+                styles.modalTitle,
+                isDark && styles.textLight
+              ]}>
+                Edit Profile
+              </Text>
+              <TouchableOpacity
+                onPress={() => setShowEditModal(false)}
+                disabled={isUpdating}
+                style={styles.closeButton}
+              >
+                <Ionicons
+                  name="close"
+                  size={24}
+                  color={isDark ? '#9CA3AF' : '#6B7280'}
                 />
-              </View>
+              </TouchableOpacity>
+            </View>
 
-              <View className="flex-row space-x-4">
-                <TouchableOpacity
-                  className="flex-1 py-3 rounded-lg bg-gray-200 dark:bg-gray-700 items-center"
-                  onPress={() => setShowEditModal(false)}
-                  disabled={isUpdating}
-                >
-                  <Text className="text-gray-800 dark:text-gray-200 font-semibold">
-                    Cancel
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  className={`flex-1 py-3 rounded-lg items-center bg-indigo-500 ${
-                    isUpdating ? 'opacity-70' : 'active:opacity-90'
-                  }`}
-                  onPress={handleSaveProfile}
-                  disabled={isUpdating}
-                >
-                  <Text className="text-white font-semibold">
-                    {isUpdating ? 'Saving...' : 'Save Changes'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
+            <View style={styles.formGroup}>
+              <Text style={[
+                styles.label,
+                isDark && styles.textMuted
+              ]}>
+                Full Name
+              </Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  isDark && styles.inputDark
+                ]}
+                placeholder="Enter your full name"
+                placeholderTextColor={isDark ? '#9CA3AF' : '#6B7280'}
+                value={newName}
+                onChangeText={setNewName}
+                autoCapitalize="words"
+                editable={!isUpdating}
+              />
+            </View>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={[
+                  styles.button,
+                  styles.cancelButton,
+                  isDark && styles.cancelButtonDark
+                ]}
+                onPress={() => setShowEditModal(false)}
+                disabled={isUpdating}
+              >
+                <Text style={[
+                  styles.buttonText,
+                  styles.cancelButtonText,
+                  isDark && styles.cancelButtonTextDark
+                ]}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.button,
+                  styles.saveButton,
+                  isUpdating && styles.disabled
+                ]}
+                onPress={handleSaveProfile}
+                disabled={isUpdating}
+              >
+                <Text style={styles.buttonText}>
+                  {isUpdating ? 'Saving...' : 'Save Changes'}
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
         </KeyboardAvoidingView>
       </Modal>
-    </>
+    </View>
   );
-} 
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+  },
+  containerDark: {
+    backgroundColor: '#111827',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  contentWrapper: {
+    flex: 1,
+    width: '100%',
+    paddingHorizontal: 20,
+    paddingVertical: 24,
+  },
+  webContentWrapper: {
+    maxWidth: 640,
+    alignSelf: 'center',
+  },
+  header: {
+    marginBottom: 32,
+  },
+  name: {
+    fontSize: Platform.OS === 'web' ? 36 : 32,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    marginBottom: 8,
+  },
+  email: {
+    fontSize: 16,
+    color: '#6B7280',
+  },
+  menuContainer: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 4,
+      },
+      web: {
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+      },
+    }),
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  menuItemDark: {
+    backgroundColor: '#1F2937',
+    borderBottomColor: '#374151',
+  },
+  menuItemContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  menuIcon: {
+    marginRight: 16,
+  },
+  menuText: {
+    fontSize: 16,
+    color: '#1F2937',
+  },
+  version: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginTop: 32,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    ...Platform.select({
+      web: {
+        maxWidth: 480,
+        alignSelf: 'center',
+        width: '100%',
+        margin: 24,
+        borderRadius: 16,
+      },
+    }),
+  },
+  modalContentDark: {
+    backgroundColor: '#1F2937',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  closeButton: {
+    padding: 8,
+  },
+  formGroup: {
+    marginBottom: 24,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#6B7280',
+    marginBottom: 8,
+  },
+  input: {
+    backgroundColor: 'white',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    color: '#1F2937',
+  },
+  inputDark: {
+    backgroundColor: '#374151',
+    borderColor: '#4B5563',
+    color: 'white',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  button: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  buttonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: 'white',
+  },
+  cancelButton: {
+    backgroundColor: '#F3F4F6',
+  },
+  cancelButtonDark: {
+    backgroundColor: '#374151',
+  },
+  cancelButtonText: {
+    color: '#6B7280',
+  },
+  cancelButtonTextDark: {
+    color: '#D1D5DB',
+  },
+  saveButton: {
+    backgroundColor: '#6366F1',
+  },
+  disabled: {
+    opacity: 0.7,
+  },
+  textLight: {
+    color: '#F9FAFB',
+  },
+  textMuted: {
+    color: '#9CA3AF',
+  },
+}); 

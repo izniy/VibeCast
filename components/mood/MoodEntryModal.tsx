@@ -1,19 +1,31 @@
 import React from 'react';
-import { View, Modal, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import {
+  View,
+  Modal,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
 import { Text } from 'react-native-paper';
-import { useColorScheme } from 'nativewind';
 
 interface MoodEntryModalProps {
   visible: boolean;
   selectedMood: string | null;
   onClose: () => void;
   onSave: (journalEntry: string) => void;
+  isLoading?: boolean;
 }
 
-export default function MoodEntryModal({ visible, selectedMood, onClose, onSave }: MoodEntryModalProps) {
+export default function MoodEntryModal({
+  visible,
+  selectedMood,
+  onClose,
+  onSave,
+  isLoading = false,
+}: MoodEntryModalProps) {
   const [journalEntry, setJournalEntry] = React.useState('');
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === 'dark';
 
   const handleSave = () => {
     onSave(journalEntry);
@@ -21,60 +33,48 @@ export default function MoodEntryModal({ visible, selectedMood, onClose, onSave 
   };
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.modalContainer}
       >
-        <View className={`${isDark ? 'bg-gray-800' : 'bg-white'} rounded-t-3xl p-6 shadow-xl`}>
-          <View className="flex-row justify-between items-center mb-6">
-            <Text className={`text-xl font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-              Feeling {selectedMood}
-            </Text>
+        <View style={styles.sheet}>
+          {/* Header */}
+          <View style={styles.headerRow}>
+            <Text style={styles.feelingText}>Feeling {selectedMood}</Text>
             <TouchableOpacity onPress={onClose}>
-              <Text className="text-indigo-500">Cancel</Text>
+              <Text style={styles.cancelText}>Cancel</Text>
             </TouchableOpacity>
           </View>
 
-          <View className="mb-6">
-            <View className="flex-row items-center justify-center mb-2">
-              <Text className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                ✍️ Reflect & express
-              </Text>
-            </View>
-            <Text 
-              className={`text-base text-center ${isDark ? 'text-gray-300' : 'text-gray-600'}`}
-              style={styles.tagline}
-            >
+          {/* Prompt */}
+          <View style={styles.promptContainer}>
+            <Text style={styles.promptTitle}>✍️ Reflect & express</Text>
+            <Text style={styles.promptSubtitle}>
               Write down how you're really feeling — this is your safe space.
             </Text>
           </View>
 
+          {/* Input */}
           <TextInput
-            className={`w-full rounded-lg p-4 mb-6 ${
-              isDark ? 'bg-gray-700 text-white' : 'bg-gray-50 text-gray-900'
-            } border ${isDark ? 'border-gray-600' : 'border-gray-200'}`}
+            style={styles.input}
             placeholder="Share your thoughts..."
-            placeholderTextColor={isDark ? '#9CA3AF' : '#6B7280'}
+            placeholderTextColor="#6B7280"
             value={journalEntry}
             onChangeText={setJournalEntry}
             multiline
             numberOfLines={4}
             textAlignVertical="top"
-            style={styles.textInput}
           />
 
+          {/* Save Button */}
           <TouchableOpacity
-            className="bg-indigo-500 rounded-lg py-4 items-center shadow-md active:bg-indigo-600"
+            style={[styles.saveButton, isLoading && { opacity: 0.6 }]}
             onPress={handleSave}
+            disabled={isLoading}
           >
-            <Text className="text-white font-semibold text-base">
-              Save Mood
+            <Text style={styles.saveButtonText}>
+              {isLoading ? 'Saving...' : 'Save Mood'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -87,16 +87,65 @@ const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0,0,0,0.5)',
   },
-  tagline: {
-    lineHeight: 22,
-    letterSpacing: 0.3,
+  sheet: {
+    backgroundColor: 'white',
+    padding: 24,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
   },
-  textInput: {
-    minHeight: 120,
-    maxHeight: 200,
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  feelingText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  cancelText: {
+    color: '#6366F1',
+    fontWeight: '500',
+    fontSize: 14,
+  },
+  promptContainer: {
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  promptTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#111827',
+    marginBottom: 6,
+  },
+  promptSubtitle: {
+    textAlign: 'center',
+    color: '#6B7280',
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  input: {
+    backgroundColor: '#F9FAFB',
+    borderColor: '#E5E7EB',
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 16,
     fontSize: 16,
-    lineHeight: 24,
+    marginBottom: 24,
+    color: '#111827',
   },
-}); 
+  saveButton: {
+    backgroundColor: '#6366F1',
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  saveButtonText: {
+    color: 'white',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+});

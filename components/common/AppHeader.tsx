@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Image, Text } from 'react-native';
+import { View, Image, Text, StyleSheet } from 'react-native';
 import { useColorScheme } from 'nativewind';
 
 export default function AppHeader() {
@@ -7,32 +7,68 @@ export default function AppHeader() {
   const isDark = colorScheme === 'dark';
 
   return (
-    <View className={`
-      flex-row items-center justify-between px-4 py-3 
-      ${isDark ? 'bg-indigo-950/90' : 'bg-indigo-100/90'}
-      shadow-md
-    `}>
-      <View className="flex-row items-center space-x-3">
-        <Image 
-          source={require('../../assets/adaptive-icon.png')} 
-          className="w-10 h-10 rounded-xl" 
-          resizeMode="contain"
-        />
+    <View style={[ 
+      styles.container, 
+      { backgroundColor: isDark ? 'rgba(49, 46, 129, 0.9)' : 'rgba(224, 231, 255, 0.9)' }
+    ]}>
+      <View style={styles.logoRow}>
+        <View style={styles.emojiWrapper}>
+          <Image 
+            source={require('../../assets/adaptive-icon.png')} 
+            style={styles.icon}
+            resizeMode="contain"
+          />
+        </View>
         <View>
-          <Text className={`
-            text-xl font-bold 
-            ${isDark ? 'text-indigo-100' : 'text-indigo-800'}
-          `}>
+          <Text style={[ 
+            styles.title, 
+          ]}>
             VibeCast
           </Text>
-          <Text className={`
-            text-xs 
-            ${isDark ? 'text-indigo-300' : 'text-indigo-600'}
-          `}>
+          <Text style={[ 
+            styles.subtitle, 
+            { color: isDark ? '#A5B4FC' : '#6366F1' }
+          ]}>
             Track your mood, feel the groove ✨
           </Text>
         </View>
       </View>
     </View>
   );
-} 
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 2,
+  },
+  logoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  emojiWrapper: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    padding: 4,
+  },
+  icon: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  subtitle: {
+    fontSize: 12,
+  },
+});

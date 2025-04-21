@@ -210,17 +210,18 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F9FAFB',
+    paddingHorizontal: '5%',
   },
   section: {
     marginVertical: 8,
   },
   sectionContent: {
-    paddingHorizontal: 16,
+    paddingHorizontal: '2%',
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: '2%',
     marginTop: 16,
     marginBottom: 8,
   },
@@ -233,20 +234,20 @@ const styles = StyleSheet.create({
   description: {
     fontSize: 14,
     color: '#6B7280',
-    paddingHorizontal: 16,
     marginBottom: 8,
+    paddingHorizontal: '2%',
   },
   divider: {
     height: 1,
     backgroundColor: '#E5E7EB',
     marginVertical: 16,
-    marginHorizontal: 16,
+    marginHorizontal: '5%',
   },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: '5%',
   },
   error: {
     fontSize: 16,
@@ -274,7 +275,7 @@ const styles = StyleSheet.create({
   },
   emptyContent: {
     alignItems: 'center',
-    padding: 20,
+    padding: '5%',
   },
   emptyIcon: {
     marginBottom: 16,
@@ -286,6 +287,6 @@ const styles = StyleSheet.create({
     maxWidth: '80%',
   },
   affirmationContainer: {
-    paddingHorizontal: 16,
+    paddingHorizontal: '5%',
   },
-}); 
+});

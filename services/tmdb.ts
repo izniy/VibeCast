@@ -78,6 +78,7 @@ const moodToGenres: Record<MoodType, { genres: number[]; description: string }> 
  */
 export async function getMovieRecommendations(mood: MoodType): Promise<{ movies: Movie[]; description: string }> {
   try {
+    console.log("entermovie")
     const moodMapping = moodToGenres[mood];
     let url = 'https://api.themoviedb.org/3/discover/movie';
     let description = 'Popular movies you might enjoy';

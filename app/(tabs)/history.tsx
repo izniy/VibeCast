@@ -8,6 +8,7 @@ import type { MoodType } from '@/types/mood';
 import type { MoodEntry } from '@/services/mood';
 import { MoodEntryCard } from '@/components/history/MoodEntryCard';
 import { MoodFilterChips } from '@/components/history/MoodFilterChips';
+import { useFocusEffect } from 'expo-router';
 
 interface GroupedMoodEntries {
   title: string;
@@ -46,6 +47,13 @@ export default function HistoryScreen() {
     });
   }, [user, moodHistory, loading, error, selectedMood]);
 
+  useFocusEffect(
+    useCallback(() => {
+      console.log('🔁 History screen focused, refreshing...');
+      refreshHistory(true);
+    }, [refreshHistory])
+  );
+  
   // Add initial fade-in
   React.useEffect(() => {
     Animated.timing(fadeAnim, {

@@ -1,6 +1,5 @@
-import React from 'react';
-import { View, StyleSheet, TouchableOpacity, Image } from 'react-native';
-import { useState } from 'react';
+import React, { useState } from 'react';
+import { View, StyleSheet, TouchableOpacity, Image, Platform, StyleSheet as RNStyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/providers/AuthProvider';
 import { Text } from 'react-native-paper';
@@ -41,15 +40,9 @@ export default function HomeScreen() {
 
     try {
       await addMoodEntry(selectedMood, journalEntry);
-      
-      // Fetch new recommendations based on the mood
       await fetchRecommendations(selectedMood);
-      
-      // Close modal after successful save
       setShowModal(false);
       setSelectedMood(null);
-      
-      // Navigate to recommendations
       router.push('/(tabs)/recommendations');
     } catch (error) {
       console.error('Error saving mood:', error);
@@ -57,38 +50,45 @@ export default function HomeScreen() {
   };
 
   return (
-    <View className="flex-1 bg-white dark:bg-gray-900">
+    <View style={styles.container}>
       <Image
-        source={{ uri: 'https://images.unsplash.com/photo-1517021897933-0e0319cfbc28?q=80&w=2070&auto=format&fit=crop' }}
+        source={{
+          uri: 'https://images.unsplash.com/photo-1517021897933-0e0319cfbc28?q=80&w=2070&auto=format&fit=crop',
+        }}
         style={styles.backgroundImage}
       />
       <View style={styles.overlay} />
       <AppHeader />
       <View style={styles.content}>
-        <Text className={`text-3xl font-bold text-white text-center mb-10 ${
-          isDark ? 'text-shadow-lg' : 'text-shadow-md'
-        }`}>
+        <Text
+          style={{
+            fontSize: 24,
+            fontWeight: 'bold',
+            color: '#FFFFFF',
+            textAlign: 'center',
+            marginBottom: 20,
+          }}
+        >
           How are you feeling today?
         </Text>
-        
+
         <View style={styles.moodGrid}>
           {MOODS.map((mood) => (
             <TouchableOpacity
               key={mood.label}
               style={[
                 styles.moodButton,
-                selectedMood === mood.label && styles.selectedMoodButton
+                { backgroundColor: 'rgba(255, 255, 255, 0.8)' },
+                selectedMood === mood.label && styles.selectedMoodButton,
               ]}
-              className={`bg-white/80 dark:bg-gray-800/80 backdrop-blur-md
-                rounded-xl shadow-lg transform transition-all duration-200 active:scale-95
-                ${selectedMood === mood.label ? 'border-2 border-indigo-500 scale-105' : ''}`}
               onPress={() => handleMoodSelect(mood.label as MoodType)}
             >
               <View style={styles.moodContent}>
                 <Text style={styles.moodEmoji}>{mood.emoji}</Text>
-                <Text 
-                  className={`text-sm font-medium capitalize text-center
-                    ${isDark ? 'text-gray-300' : 'text-gray-700'}`}
+                <Text
+                  className={`text-sm font-medium capitalize text-center ${
+                    isDark ? 'text-gray-300' : 'text-gray-700'
+                  }`}
                 >
                   {mood.label}
                 </Text>
@@ -98,7 +98,7 @@ export default function HomeScreen() {
         </View>
 
         {!user && (
-          <View className="absolute bottom-10 left-5 right-5 bg-white/90 dark:bg-gray-800/90 rounded-2xl p-5 items-center">
+          <View style={styles.loginPrompt} className="bg-white/90 dark:bg-gray-800/90 rounded-2xl">
             <Text className={`text-base ${isDark ? 'text-gray-300' : 'text-gray-700'} mb-3`}>
               Sign in to track your moods
             </Text>
@@ -106,9 +106,7 @@ export default function HomeScreen() {
               className="bg-indigo-500 px-6 py-3 rounded-lg"
               onPress={() => router.push('/login' as any)}
             >
-              <Text className="text-white font-semibold text-base">
-                Login
-              </Text>
+              <Text className="text-white font-semibold text-base">Login</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -130,34 +128,37 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    position: 'relative',
     backgroundColor: '#F3F4F6',
   },
   backgroundImage: {
-    position: 'absolute',
-    width: '100%',
-    height: '100%',
+    ...RNStyleSheet.absoluteFillObject,
+    resizeMode: 'cover',
   },
   overlay: {
-    position: 'absolute',
-    width: '100%',
-    height: '100%',
+    ...RNStyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.3)',
   },
   content: {
     flex: 1,
-    padding: 20,
+    paddingHorizontal: '5%',
     paddingTop: 60,
-  },
+    width: '100%',
+    maxWidth: 800,
+    alignSelf: 'center',
+  },  
   moodGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
     gap: 16,
     marginTop: 20,
-    paddingHorizontal: 10,
+    paddingHorizontal: '2%',
   },
   moodButton: {
     width: '28%',
+    minWidth: 100,
+    maxWidth: 160,
     aspectRatio: 1,
     padding: 12,
     elevation: 4,
@@ -168,6 +169,7 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.15,
     shadowRadius: 3.84,
+    borderRadius: 12,
   },
   selectedMoodButton: {
     elevation: 8,
@@ -178,6 +180,7 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.25,
     shadowRadius: 5.84,
+    transform: [{ scale: 1.05 }],
   },
   moodContent: {
     flex: 1,
@@ -188,5 +191,17 @@ const styles = StyleSheet.create({
     fontSize: 32,
     marginBottom: 8,
     textAlign: 'center',
+  },
+  loginPrompt: {
+    position: 'absolute',
+    bottom: 40,
+    left: '10%',
+    right: '10%',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+    maxWidth: 400,
+    alignSelf: 'center',
   },
 });
