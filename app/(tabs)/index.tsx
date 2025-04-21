@@ -12,13 +12,13 @@ import AppHeader from '@/components/common/AppHeader';
 import { useMood } from '@/hooks/useMood';
 
 const MOODS = [
-  { emoji: '😊', label: 'happy', color: '#34D399' },
-  { emoji: '😔', label: 'sad', color: '#818CF8' },
-  { emoji: '⚡️', label: 'energetic', color: '#F59E0B' },
-  { emoji: '😌', label: 'relaxed', color: '#60A5FA' },
-  { emoji: '🎯', label: 'focused', color: '#8B5CF6' },
-  { emoji: '💝', label: 'romantic', color: '#EC4899' },
-  { emoji: '😠', label: 'angry', color: '#EF4444' },
+  { emoji: '😊', label: 'happy', color: '#34D399', gradient: ['#34D399', '#10B981'] },
+  { emoji: '😔', label: 'sad', color: '#818CF8', gradient: ['#818CF8', '#6366F1'] },
+  { emoji: '⚡️', label: 'energetic', color: '#F59E0B', gradient: ['#F59E0B', '#D97706'] },
+  { emoji: '😌', label: 'relaxed', color: '#60A5FA', gradient: ['#60A5FA', '#3B82F6'] },
+  { emoji: '🎯', label: 'focused', color: '#8B5CF6', gradient: ['#8B5CF6', '#7C3AED'] },
+  { emoji: '💝', label: 'romantic', color: '#EC4899', gradient: ['#EC4899', '#DB2777'] },
+  { emoji: '😠', label: 'angry', color: '#EF4444', gradient: ['#EF4444', '#DC2626'] },
 ];
 
 export default function HomeScreen() {
@@ -75,14 +75,24 @@ export default function HomeScreen() {
           {MOODS.map((mood) => (
             <TouchableOpacity
               key={mood.label}
-              className={`bg-white/90 dark:bg-gray-800/90 rounded-2xl p-5 items-center w-[28%] aspect-square justify-center
-                ${selectedMood === mood.label ? 'border-2 border-indigo-500' : ''}`}
+              style={[
+                styles.moodButton,
+                selectedMood === mood.label && styles.selectedMoodButton
+              ]}
+              className={`bg-white/80 dark:bg-gray-800/80 backdrop-blur-md
+                rounded-xl shadow-lg transform transition-all duration-200 active:scale-95
+                ${selectedMood === mood.label ? 'border-2 border-indigo-500 scale-105' : ''}`}
               onPress={() => handleMoodSelect(mood.label as MoodType)}
             >
-              <Text style={styles.moodEmoji}>{mood.emoji}</Text>
-              <Text className={`text-sm font-medium capitalize ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                {mood.label}
-              </Text>
+              <View style={styles.moodContent}>
+                <Text style={styles.moodEmoji}>{mood.emoji}</Text>
+                <Text 
+                  className={`text-sm font-medium capitalize text-center
+                    ${isDark ? 'text-gray-300' : 'text-gray-700'}`}
+                >
+                  {mood.label}
+                </Text>
+              </View>
             </TouchableOpacity>
           ))}
         </View>
@@ -144,9 +154,39 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 16,
     marginTop: 20,
+    paddingHorizontal: 10,
+  },
+  moodButton: {
+    width: '28%',
+    aspectRatio: 1,
+    padding: 12,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 3.84,
+  },
+  selectedMoodButton: {
+    elevation: 8,
+    shadowColor: '#4F46E5',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 5.84,
+  },
+  moodContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   moodEmoji: {
     fontSize: 32,
     marginBottom: 8,
+    textAlign: 'center',
   },
 });

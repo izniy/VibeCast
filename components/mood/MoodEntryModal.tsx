@@ -41,24 +41,36 @@ export default function MoodEntryModal({ visible, selectedMood, onClose, onSave 
             </TouchableOpacity>
           </View>
 
-          <Text className={`text-base mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-            Add a note (optional)
-          </Text>
+          <View className="mb-6">
+            <View className="flex-row items-center justify-center mb-2">
+              <Text className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                ✍️ Reflect & express
+              </Text>
+            </View>
+            <Text 
+              className={`text-base text-center ${isDark ? 'text-gray-300' : 'text-gray-600'}`}
+              style={styles.tagline}
+            >
+              Write down how you're really feeling — this is your safe space.
+            </Text>
+          </View>
+
           <TextInput
             className={`w-full rounded-lg p-4 mb-6 ${
               isDark ? 'bg-gray-700 text-white' : 'bg-gray-50 text-gray-900'
             } border ${isDark ? 'border-gray-600' : 'border-gray-200'}`}
-            placeholder="How are you feeling?"
+            placeholder="Share your thoughts..."
             placeholderTextColor={isDark ? '#9CA3AF' : '#6B7280'}
             value={journalEntry}
             onChangeText={setJournalEntry}
             multiline
             numberOfLines={4}
             textAlignVertical="top"
+            style={styles.textInput}
           />
 
           <TouchableOpacity
-            className="bg-indigo-500 rounded-lg py-4 items-center"
+            className="bg-indigo-500 rounded-lg py-4 items-center shadow-md active:bg-indigo-600"
             onPress={handleSave}
           >
             <Text className="text-white font-semibold text-base">
@@ -76,5 +88,15 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'flex-end',
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  tagline: {
+    lineHeight: 22,
+    letterSpacing: 0.3,
+  },
+  textInput: {
+    minHeight: 120,
+    maxHeight: 200,
+    fontSize: 16,
+    lineHeight: 24,
   },
 }); 
