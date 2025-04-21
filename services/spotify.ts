@@ -13,16 +13,6 @@ const SPOTIFY_TOKEN_KEY = 'spotify_access_token';
 const SPOTIFY_TOKEN_EXPIRY_KEY = 'spotify_token_expiry';
 export const DEFAULT_ALBUM_ART = 'https://example.com/default-album-art.jpg';
 
-const sessionPlaylistIndex: Record<MoodType, number> = {
-  happy: 0,
-  sad: 0,
-  energetic: 0,
-  relaxed: 0,
-  focused: 0,
-  romantic: 0,
-  angry: 0,
-};
-
 const MAX_PLAYLISTS = 10;
 
 interface SpotifyPlaylist {
@@ -61,6 +51,22 @@ const moodToGenres: Record<MoodType, string> = {
   romantic: 'love',
   angry: 'rock',
 };
+
+function getSessionIndex(mood: MoodType): number {
+  const key = `spotify_index_${mood}`;
+  const stored = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(key) : null;
+  return stored ? parseInt(stored, 10) : 0;
+}
+
+function incrementSessionIndex(mood: MoodType, limit: number) {
+  const key = `spotify_index_${mood}`;
+  const current = getSessionIndex(mood);
+  const next = (current + 1) % limit;
+  if (typeof sessionStorage !== 'undefined') {
+    sessionStorage.setItem(key, next.toString());
+  }
+  return next;
+}
 
 async function setItem(key: string, value: string) {
   if (Platform.OS === 'web') {
@@ -141,9 +147,7 @@ async function fetchTracksForMood(mood: MoodType, token: string): Promise<{ trac
     throw new Error('No valid playlists found for the genre');
   }
 
-  const currentIndex = sessionPlaylistIndex[mood];
-  const playlistIndex = currentIndex % validPlaylists.length;
-  sessionPlaylistIndex[mood] = (currentIndex + 1) % validPlaylists.length;
+  const playlistIndex = incrementSessionIndex(mood, validPlaylists.length);
   const playlist = validPlaylists[playlistIndex];
 
   const tracksRes = await fetch(`https://api.spotify.com/v1/playlists/${playlist.id}/tracks?limit=3`, {
