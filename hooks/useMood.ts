@@ -23,27 +23,40 @@ export function useMood() {
     };
   }, []);
 
-  // Track user ID changes
+  // Track user ID changes and trigger refresh
   useEffect(() => {
-    if (user?.id !== currentUserId.current) {
-      console.log('👤 User ID changed:', {
-        from: currentUserId.current || 'none',
-        to: user?.id || 'none',
-        initialized,
-        hasHistory: moodHistory.length > 0
-      });
-      currentUserId.current = user?.id || null;
+    if (initialized && user?.id) {
+      if (user.id !== currentUserId.current) {
+        console.log('👤 User ID changed, triggering refresh:', {
+          from: currentUserId.current || 'none',
+          to: user.id,
+          initialized,
+          hasHistory: moodHistory.length > 0
+        });
+        currentUserId.current = user.id;
+        refreshHistory(true).catch(console.error);
+      }
+    } else if (!user?.id && currentUserId.current) {
+      console.log('👤 User logged out, clearing history');
+      currentUserId.current = null;
+      setMoodHistory([]);
     }
-  }, [user?.id, initialized, moodHistory.length]);
+  }, [user?.id, initialized]);
 
   const refreshHistory = useCallback(async (force = false) => {
     const userId = user?.id;
-    if (!initialized || !userId) {
-      console.log('⏭️ Skipping refresh - auth not ready:', {
+    if (!initialized) {
+      console.log('⏭️ Skipping refresh - auth not initialized:', {
         initialized,
         hasUser: !!user,
         userId
       });
+      return;
+    }
+
+    if (!userId) {
+      console.log('⏭️ Skipping refresh - no user ID');
+      setMoodHistory([]);
       return;
     }
 
@@ -129,147 +142,47 @@ export function useMood() {
         userId
       });
 
+      // Immediately update local state
       if (isMounted.current) {
-        // Optimistic update
-        setMoodHistory((prev) => {
-          const updated = [newEntry, ...prev];
-          console.log('📊 Updated mood history (optimistic):', {
-            previousCount: prev.length,
-            newCount: updated.length,
-            newEntryId: newEntry.id,
-            userId
-          });
-          return updated;
-        });
-
-        // Poll until the entry is visible in Supabase queries
-        const pollUntilVisible = async () => {
-          const maxAttempts = 5;
-          let attempts = 0;
-
-          console.log('🔄 Starting visibility polling for new entry:', {
-            entryId: newEntry.id,
-            maxAttempts,
-            userId
-          });
-
-          while (attempts < maxAttempts && isMounted.current) {
-            console.log(`📡 Polling attempt ${attempts + 1}/${maxAttempts}...`);
-            
-            try {
-              const latest = await getMoodEntries(userId);
-              if (latest.some(entry => entry.id === newEntry.id)) {
-                console.log('🟢 Entry is now visible in Supabase query:', {
-                  entryId: newEntry.id,
-                  attempt: attempts + 1,
-                  totalEntries: latest.length
-                });
-                
-                if (isMounted.current) {
-                  setMoodHistory(latest);
-                  pendingRefresh.current = false;
-                }
-                return;
-              }
-              
-              console.log('⏳ Entry not yet visible, waiting 1000ms...');
-              await new Promise(res => setTimeout(res, 1000));
-              attempts++;
-            } catch (err) {
-              console.error('❌ Error during polling:', err);
-              attempts++;
-            }
-          }
-
-          if (attempts === maxAttempts) {
-            console.warn('⚠️ Mood entry still not visible after polling. Forcing refresh.', {
-              entryId: newEntry.id,
-              attempts,
-              userId
-            });
-            
-            if (isMounted.current) {
-              await refreshHistory(true);
-            }
-          }
-        };
-
-        // Start polling
-        pollUntilVisible().catch(err => {
-          console.error('❌ Error in pollUntilVisible:', err);
-          if (isMounted.current) {
-            refreshHistory(true);
-          }
-        });
+        setMoodHistory(prev => [newEntry, ...prev]);
       }
+
+      // Force refresh to ensure consistency
+      await refreshHistory(true);
+
     } catch (err) {
       console.error('❌ Error adding mood entry:', err);
-      setError('Failed to save mood entry');
+      if (isMounted.current) {
+        setError('Failed to add mood entry');
+      }
     }
   }, [initialized, user, refreshHistory]);
 
   const removeMoodEntry = useCallback(async (entryId: string) => {
-    const userId = user?.id;
-    if (!userId) {
-      console.error('Cannot remove mood entry - no user ID');
-      setError('You must be logged in to remove moods');
+    if (!user?.id) {
+      console.error('❌ Cannot remove mood entry - no user ID');
       return;
     }
 
     try {
       setError(null);
-      console.log('🗑️ Removing mood entry...', { entryId, userId });
-
+      
       // Optimistic update
-      setMoodHistory((prev) => {
-        const updated = prev.filter(entry => entry.id !== entryId);
-        console.log('📊 Updated mood history (optimistic delete):', {
-          previousCount: prev.length,
-          newCount: updated.length,
-          removedId: entryId
-        });
-        return updated;
-      });
-
+      setMoodHistory(prev => prev.filter(entry => entry.id !== entryId));
+      
       await deleteMoodEntry(entryId);
-      console.log('✅ Removed mood entry:', entryId);
-
-      // Refresh to ensure sync
+      
+      // Refresh to ensure consistency
       await refreshHistory(true);
     } catch (err) {
-      console.error('Error removing mood entry:', err);
-      setError('Failed to remove mood entry');
-      // Revert optimistic update on error
-      await refreshHistory(true);
-    }
-  }, [user, refreshHistory]);
-
-  // Refresh history when auth is initialized or user changes
-  useEffect(() => {
-    console.log('\n=== Auth/User State Change ===');
-    console.log('🔑 Auth State:', {
-      initialized,
-      userId: user?.id || 'none',
-      historyLength: moodHistory.length,
-      pendingRefresh: pendingRefresh.current
-    });
-
-    if (initialized) {
-      if (user?.id) {
-        if (moodHistory.length === 0 || pendingRefresh.current) {
-          console.log('🔄 Triggering refresh: empty history or pending refresh');
-          refreshHistory(true);
-        } else {
-          console.log('⏭️ Skipping refresh: history exists and no pending refresh');
-        }
-      } else {
-        console.log('🧹 Clearing mood history - no user');
-        setMoodHistory([]);
-        setError(null);
+      console.error('❌ Error removing mood entry:', err);
+      if (isMounted.current) {
+        setError('Failed to remove mood entry');
+        // Revert optimistic update on error
+        await refreshHistory(true);
       }
     }
-    console.log('=== End Auth/User State Change ===\n');
-  }, [initialized, user?.id, refreshHistory, moodHistory.length]);
+  }, [user, refreshHistory]);
 
   return {
     moodHistory,
@@ -277,6 +190,6 @@ export function useMood() {
     error,
     refreshHistory,
     addMoodEntry,
-    removeMoodEntry
+    removeMoodEntry,
   };
 } 

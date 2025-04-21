@@ -160,6 +160,37 @@ export default function HistoryScreen() {
     </View>
   ), []);
 
+  const renderEmptyState = () => (
+    <View style={styles.centerContent}>
+      <Text style={styles.emptyText}>No mood entries yet</Text>
+      <Text style={styles.emptySubtext}>Your mood history will appear here after you log your first mood</Text>
+      <TouchableOpacity 
+        style={styles.refreshButton}
+        onPress={() => refreshHistory(true)}
+      >
+        <Text style={styles.refreshButtonText}>Refresh</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  const renderError = () => (
+    <View style={styles.centerContent}>
+      <Text style={styles.errorText}>{error}</Text>
+      <TouchableOpacity 
+        style={styles.retryButton}
+        onPress={() => refreshHistory(true)}
+      >
+        <Text style={styles.retryText}>Retry</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  const renderLoading = () => (
+    <View style={styles.centerContent}>
+      <ActivityIndicator size="large" color="#6366F1" />
+    </View>
+  );
+
   const renderContent = () => {
     console.log('🎨 Rendering content:', {
       hasError: !!error,
@@ -168,31 +199,15 @@ export default function HistoryScreen() {
     });
 
     if (error) {
-      return (
-        <View style={styles.centerContent}>
-          <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity onPress={() => refreshHistory(true)} style={styles.retryButton}>
-            <Text style={styles.retryText}>Retry</Text>
-          </TouchableOpacity>
-        </View>
-      );
+      return renderError();
     }
 
     if (loading && !moodHistory.length) {
-      return (
-        <View style={styles.centerContent}>
-          <ActivityIndicator size="large" color="#6366F1" />
-        </View>
-      );
+      return renderLoading();
     }
 
     if (!moodHistory.length) {
-      return (
-        <View style={styles.centerContent}>
-          <Text style={styles.emptyText}>No mood entries yet</Text>
-          <Text style={styles.emptySubtext}>Your mood history will appear here</Text>
-        </View>
-      );
+      return renderEmptyState();
     }
 
     return (
@@ -220,14 +235,16 @@ export default function HistoryScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.filterContainer}>
-        <MoodFilterChips
-          selectedMood={selectedMood}
-          onSelectMood={setSelectedMood}
-        />
-      </View>
-      <Animated.View style={[styles.listContainer, { opacity: fadeAnim }]}>
-        {renderContent()}
+      <Animated.View style={[styles.mainContent, { opacity: fadeAnim }]}>
+        <View style={styles.filterContainer}>
+          <MoodFilterChips
+            selectedMood={selectedMood}
+            onSelectMood={setSelectedMood}
+          />
+        </View>
+        <View style={styles.contentContainer}>
+          {renderContent()}
+        </View>
       </Animated.View>
     </View>
   );
@@ -236,33 +253,19 @@ export default function HistoryScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#F9FAFB',
   },
-  filterContainer: {
-    marginBottom: 8,
-  },
-  listContainer: {
+  mainContent: {
     flex: 1,
   },
-  listContent: {
-    paddingBottom: 20,
+  filterContainer: {
+    paddingVertical: 12,
+    backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
   },
-  section: {
-    marginTop: 8,
-  },
-  sectionHeader: {
-    paddingHorizontal: 20,
-    marginBottom: 10,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#1F2937',
-  },
-  sectionDescription: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginTop: 2,
+  contentContainer: {
+    flex: 1,
   },
   centerContent: {
     flex: 1,
@@ -270,31 +273,64 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
   },
+  section: {
+    marginBottom: 16,
+  },
+  sectionHeader: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 4,
+  },
+  sectionDescription: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  listContent: {
+    paddingTop: 8,
+    paddingBottom: 20,
+  },
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#4B5563',
+    color: '#1F2937',
     marginBottom: 8,
+    textAlign: 'center',
   },
   emptySubtext: {
     fontSize: 14,
     color: '#6B7280',
     textAlign: 'center',
+    marginBottom: 16,
   },
   errorText: {
     fontSize: 16,
     color: '#EF4444',
-    marginBottom: 12,
+    marginBottom: 16,
+    textAlign: 'center',
   },
   retryButton: {
+    backgroundColor: '#EF4444',
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: '#6366F1',
     borderRadius: 8,
   },
   retryText: {
-    color: '#FFFFFF',
-    fontSize: 14,
+    color: 'white',
+    fontWeight: '500',
+  },
+  refreshButton: {
+    backgroundColor: '#6366F1',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  refreshButtonText: {
+    color: 'white',
     fontWeight: '500',
   },
 });
